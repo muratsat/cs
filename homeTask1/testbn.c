@@ -6,7 +6,7 @@ int main() {
     bn *b = bn_init(a); // b то>е = 0
     int code = bn_init_string(a, "123456789012345678");
     // a = 123456789012345678
-    // Gдес+ и далее code - код ошибки.
+    // Здесь и далее code - код ошибки.
     // 0 - всё хорошо
     // Не 0 - что-то пошло не так.
     code = bn_init_int(b, 999); // b = 999
@@ -19,9 +19,9 @@ int main() {
         printf("bn_div_to failed, code=%d\n", code);
 
     bn *c = bn_new();
-    code = bn_init(c, 222);
+    code = bn_init_int(c, 222);
     bn *d = bn_new();
-    code = bn_init(d, 333);
+    code = bn_init_int(d, 333);
     bn *e = bn_add(c, d); // e = 555
     bn *f = bn_mod(e, c); // f = 111
     const char *r1 = bn_to_string(f,10); // r1 -> "111"
