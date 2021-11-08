@@ -57,7 +57,6 @@ int bn_cmp(bn const *left, bn const *right){
 
     if(sign1 != sign2)
         return sign1 < sign2? -1 : 1;
-    printf("%d %d \n", sign1, sign2);
 
     if(sign1 == 0)
         return 0;
