@@ -3,11 +3,17 @@
 #include <string.h>
 #include "bn.h"
 
-#define MOD 4294967296 // 2^32
+//#define MOD 4294967296 // 2^32
+const long long MOD = 4294967296;
 
 struct bn_s{
+    // array of digits in base 2^32
     unsigned int *digit;
+
+    //number of digits in base 2^32
     int size;
+
+    // sign=-1 if bn < 0; sign=1 if bn > 0; sign=0 if bn=0 
     int sign;
 };
 typedef struct bn_s bn;
@@ -39,5 +45,30 @@ int bn_delete(bn *t){
     if(t->digit != NULL) 
         free(t->digit);
     free(t);
+    return 0;
+}
+
+int bn_cmp(bn const *left, bn const *right){
+    int size1 = left->size, size2 = right->size;
+    if(size1 != size2)
+        return size1 - size2;
+
+    int sign1 = left->sign, sign2 = right->sign;
+
+    if(sign1 != sign2)
+        return sign1 < sign2? -1 : 1;
+    printf("%d %d \n", sign1, sign2);
+
+    if(sign1 == 0)
+        return 0;
+    
+    for(int i = size1-1; i >= 0; i--){
+        long long a = left->digit[i], b =right->digit[i];
+        if(a > b)
+            return sign1;
+        if(a < b)
+            return -sign1;
+    }
+
     return 0;
 }
