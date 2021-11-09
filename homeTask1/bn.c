@@ -135,9 +135,12 @@ bn* bn_add_abs(bn const *left, bn const *right){
     return res;
 }
 
-// Find difference of bignumbers' absolute values
-// bn_sub_abs = abs(|left| - |right|)
-bn* bn_sub_abs(const bn *left, bn const *right){
+// Compare absolute values of two numbers
+// Returns:
+// -1 if |left| < |right|
+//  0 if |left| = |right|
+//  1 if |left| > |right|
+int bn_cmp_abs(const bn *left, bn const *right){
     int size1 = left->size, size2 = right->size;
     int cmp = size1 < size2? -1 : 1;
 
@@ -151,10 +154,17 @@ bn* bn_sub_abs(const bn *left, bn const *right){
         else
             cmp = left->digit[i] < right->digit[i]? -1 : 1;
     }
+    return cmp;
+}
+
+// Find difference of bignumbers' absolute values
+// bn_sub_abs = abs(|left| - |right|)
+bn* bn_sub_abs(const bn *left, bn const *right){
+    int size1 = left->size, size2 = right->size;
+    int cmp = bn_cmp_abs(left, right);
 
     if(cmp == 0)
         return bn_new();
-
 
     bn *res = NULL; 
     const bn *sub = NULL;
