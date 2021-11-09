@@ -137,52 +137,65 @@ bn* bn_add_abs(bn const *left, bn const *right){
 
 // Find difference of bignumbers' absolute values
 // bn_sub_abs = abs(|left| - |right|)
-bn* bn_sub_abs(bn *left, bn *right){
-    int cmp = bn_cmp(left, right), swapped = 0;
+bn* bn_sub_abs(const bn *left, bn const *right){
+    int size1 = left->size, size2 = right->size;
+    int cmp = size1 < size2? -1 : 1;
 
-    // if |left| == |right|, then return zero
+    if(size1 == size2){
+        int i = size1-1;
+        while(i >= 0 && left->digit[i] == right->digit[i])
+            i--;
+
+        if(i < 0)
+            cmp = 0;
+        else
+            cmp = left->digit[i] < right->digit[i]? -1 : 1;
+    }
+    printf("\ncmp = %d\n", cmp);
+
     if(cmp == 0)
         return bn_new();
 
-    // swap if left < right
-    if(cmp < 0){
-        bn* temp = left;
-        left = right;
-        right = temp;
-        swapped = 1;
+
+    bn *res = NULL; 
+    const bn *sub = NULL;
+
+    if(cmp > 0){
+        res = bn_init(left);
+        sub = right;
+    }
+    if(cmp < 0){ // if left < right, swap sizes
+        res = bn_init(right);
+        sub = left;
+        int temp_size = size1;
+        size1 = size2;
+        size2 = temp_size;
     }
 
-    int size1 = left->size, size2 = right->size;
-    bn* res = bn_init(left);
-
-    int borrowed = 0, i = 0; 
-    long long tmp;
-
-    while(i < size2){
-        tmp = res->digit[i];
-        if(borrowed)
-            tmp--;
-        
+    long long tmp, i, borrowed = 0;
+    for(i = 0; i < size2; i++){
+        tmp = res->digit[i] - borrowed;
         borrowed = 0;
-        if(tmp < right->digit[i]){
+
+        if(tmp < sub->digit[i]){
             borrowed = 1;
             tmp += MOD;
         }
 
-        tmp -= right->digit[i];
+        tmp -= sub->digit[i];
         res->digit[i] = tmp;
-        i++;
     }
     if(borrowed)
         res->digit[i]--;
     
     // Remove traililng zeros
-    i = size1;
-    while(res->digit[i-1] == 0)
-        i--;
-    if(i != size1){
-        res->digit = (unsigned int*)realloc(res->digit, i*sizeof(unsigned int));
-        res->size = i;
+    int newsize = size1;
+    while(res->digit[newsize-1] == 0)
+        newsize--;
+
+    if(newsize != size1){
+        res->digit = (unsigned int*)realloc(res->digit, newsize*sizeof(unsigned int));
+        res->size = newsize;
     }
 
     res->sign = 1;

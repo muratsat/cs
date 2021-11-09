@@ -17,7 +17,7 @@ int main(){
     a->digit[1] = 4;
     a->digit[2] = 3;
 
-    b->size = 3; b->sign = 1;
+    b->size = 3; b->sign = -1;
     b->digit = (unsigned int*)realloc(b->digit, b->size*sizeof(unsigned int));
     b->digit[0] = 0;
     b->digit[1] = 1;
@@ -26,18 +26,19 @@ int main(){
 
     bn* c = bn_sub_abs(a, b);
 
-    for(int i = 0; i < a->size; i++)
+    for(int i = a->size-1; i >= 0; i--)
         printf("%u ", a->digit[i]);
     printf("\n");
 
-    for(int i = 0; i < b->size; i++)
+    for(int i = b->size-1; i >= 0; i--)
         printf("%u ", b->digit[i]);
     printf("\n");
 
-    for(int i = 0; i < c->size; i++)
+    for(int i = c->size-1; i >= 0; i--)
         printf("%u ", c->digit[i]);
     printf("\n");
 
+    printf("\n");
     bn_delete(a);
     bn_delete(b);
     bn_delete(c);
