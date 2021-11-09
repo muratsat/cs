@@ -48,26 +48,43 @@ int bn_delete(bn *t){
     return 0;
 }
 
+int bn_init_int(bn *t, int init_int){
+    t->digit = (unsigned int*)realloc(t->digit, sizeof(unsigned int));
+    t->size = 1;
+    t->digit[0] = init_int;
+    t->sign = 1;
+
+    if(init_int == 0)
+        t->sign = 0;
+
+    if(init_int < 0){
+        t->sign = -1;
+        t->digit[0] = -init_int;
+    }
+    return 0;
+}
+
 int bn_cmp(bn const *left, bn const *right){
-    int size1 = left->size, size2 = right->size;
-    if(size1 != size2)
-        return size1 - size2;
-
     int sign1 = left->sign, sign2 = right->sign;
+    int size1 = left->size, size2 = right->size;
 
-    if(sign1 != sign2)
-        return sign1 < sign2? -1 : 1;
+    long long sign = size1 * sign1 - size2 * sign2;
 
-    if(sign1 == 0)
-        return 0;
-    
-    for(int i = size1-1; i >= 0; i--){
-        long long a = left->digit[i], b =right->digit[i];
-        if(a > b)
-            return sign1;
-        if(a < b)
-            return -sign1;
+    if(sign == 0){
+        long long i = size1, diff;
+
+        while(--i >= 0){
+            diff = (long long)left->digit[i] - (long long)right->digit[i];
+            if(diff != 0)
+                break;
+        }
+
+        sign = sign1 * diff;
     }
 
+    if(sign < 0)
+        return -1;
+    if(sign > 0)
+        return 1;
     return 0;
 }
