@@ -151,7 +151,6 @@ bn* bn_sub_abs(const bn *left, bn const *right){
         else
             cmp = left->digit[i] < right->digit[i]? -1 : 1;
     }
-    printf("\ncmp = %d\n", cmp);
 
     if(cmp == 0)
         return bn_new();
