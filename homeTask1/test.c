@@ -1,58 +1,45 @@
 #include <stdio.h>
 #include "bn.c"
 
-unsigned int to_int(const char* s){
-    int d = 1;
-    unsigned int res = 0;
-    for(int i = 31; i >= 0; i--){
-        res += (s[i]-'0')*d;
-        d *= 2;
-    }
-    return res;
+void print(bn* a){
+    for(int i = 0; i < a->size; i++)
+        printf("%u ", a->digit[i]);
+    printf("\n");
 }
 
-bn *bn_init_bin(const char* bin){
+int main(){
     bn *a = bn_new();
-    int n = strlen(bin); 
-    int size = n/32 + (n%32 != 0);
-    a->sign = 1;
+    bn *b = bn_new();
 
-    a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
-    a->size = size;
+    a->size = 3; a->sign = 1;
+    a->digit = (unsigned int*)realloc(a->digit, a->size*sizeof(unsigned int));
+    a->digit[0] = 1;
+    a->digit[1] = 4;
+    a->digit[2] = 3;
 
-    int i = n-1, k = 0, end = 0;
-    if(bin[0] == '-'){
-        a->sign = -1;
-        end = 1;
-    }
+    b->size = 3; b->sign = 1;
+    b->digit = (unsigned int*)realloc(b->digit, b->size*sizeof(unsigned int));
+    b->digit[0] = 0;
+    b->digit[1] = 1;
+    b->digit[2] = 3;
+    //b->digit[1] = 4294967295;
 
-    while(i >= end){
-        char digit[] = "00000000000000000000000000000000";
+    bn* c = bn_sub_abs(a, b);
 
-        for(int j = 0; j < 32 && j <= i; j++)
-            digit[31 - j] = bin[i-j];
-        
-        a->digit[k] = to_int(digit);
+    for(int i = 0; i < a->size; i++)
+        printf("%u ", a->digit[i]);
+    printf("\n");
 
-        k++;
-        i -= 32;
-    }
-    if(a->size == 1 && a->digit[0] == 0)
-        a->sign = 0;
-    a->size = k;
-    return a;
-}
+    for(int i = 0; i < b->size; i++)
+        printf("%u ", b->digit[i]);
+    printf("\n");
 
-int main(int argc, char *argv[]) {
+    for(int i = 0; i < c->size; i++)
+        printf("%u ", c->digit[i]);
+    printf("\n");
 
-    bn *a = bn_init_bin(argv[1]);
-
-    bn *b = bn_init_bin(argv[2]);
-
-    long long compare = bn_cmp(a, b);
-    printf("%lld \n", compare);
-
-    bn_delete(b);
     bn_delete(a);
+    bn_delete(b);
+    bn_delete(c);
     return 0;
 }

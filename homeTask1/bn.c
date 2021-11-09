@@ -33,6 +33,7 @@ bn *bn_init(bn const *orig){
     copy->sign = orig->sign;
     copy->size = orig->size;
 
+    copy->digit = (unsigned int*)realloc(copy->digit, copy->size*sizeof(unsigned int));
     for(int i = 0; i < orig->size; i++)
         copy->digit[i] = orig->digit[i];
 
@@ -102,4 +103,88 @@ int bn_abs(bn *t){
 
 int bn_sign(bn const *t){
     return t->sign;
+}
+
+// Add absolute values of two big numbers
+bn* bn_add_abs(bn const *left, bn const *right){
+    int size1 = left->size, size2 = right->size;
+    int size = size1 > size2? size1 : size2;
+
+    bn* res = bn_new();
+    res->digit = (unsigned int*)realloc(res->digit, size*sizeof(unsigned int));
+    
+    long long carry = 0, tmp;
+    for(int i = 0; i < size; i++){
+        tmp = carry;
+        tmp += i < size1? left->digit[i] : 0;
+        tmp += i < size2? right->digit[i] : 0;
+        res->digit[i] = tmp%MOD;
+        carry = tmp/MOD;
+    }
+
+    if(carry){
+        size++;
+        res->digit = (unsigned int*)realloc(res->digit, size*sizeof(unsigned int));
+        res->digit[size-1] = carry;
+    }
+
+    res->size = size;
+    //check if the result is zero
+    res->sign = size == 1 && res->digit[0] == 0? 0 : 1;
+
+    return res;
+}
+
+// Find difference of bignumbers' absolute values
+// bn_sub_abs = abs(|left| - |right|)
+bn* bn_sub_abs(bn *left, bn *right){
+    int cmp = bn_cmp(left, right), swapped = 0;
+
+    // if |left| == |right|, then return zero
+    if(cmp == 0)
+        return bn_new();
+
+    // swap if left < right
+    if(cmp < 0){
+        bn* temp = left;
+        left = right;
+        right = temp;
+        swapped = 1;
+    }
+
+    int size1 = left->size, size2 = right->size;
+    bn* res = bn_init(left);
+
+    int borrowed = 0, i = 0; 
+    long long tmp;
+
+    while(i < size2){
+        tmp = res->digit[i];
+        if(borrowed)
+            tmp--;
+        
+        borrowed = 0;
+        if(tmp < right->digit[i]){
+            borrowed = 1;
+            tmp += MOD;
+        }
+
+        tmp -= right->digit[i];
+        res->digit[i] = tmp;
+        i++;
+    }
+    if(borrowed)
+        res->digit[i]--;
+    
+    // Remove traililng zeros
+    i = size1;
+    while(res->digit[i-1] == 0)
+        i--;
+    if(i != size1){
+        res->digit = (unsigned int*)realloc(res->digit, i*sizeof(unsigned int));
+        res->size = i;
+    }
+
+    res->sign = 1;
+    return res;
 }
