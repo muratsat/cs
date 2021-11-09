@@ -210,3 +210,34 @@ bn* bn_sub_abs(const bn *left, bn const *right){
     res->sign = 1;
     return res;
 }
+
+bn* bn_add(bn const *left, bn const *right){
+    int sign1 = left->sign, sign2 = right->sign;
+    bn* res = NULL;
+    if(sign1 == sign2){
+        res = bn_add_abs(left, right);
+        res->sign = sign1;
+        return res;
+    }
+
+    res = bn_sub_abs(left, right);
+    res->sign = bn_cmp_abs(left, right);
+
+    return res;
+}
+
+bn* bn_sub(bn const *left, bn const *right){
+    int sign1 = left->sign, sign2 = right->sign;
+    bn* res = NULL;
+
+    if(sign1 != sign2){
+        res = bn_add_abs(left, right);
+        res->sign = sign1;
+        return res;
+    }
+
+    res = bn_sub_abs(left, right);
+    res->sign = bn_cmp_abs(left, right);
+
+    return res;
+}
