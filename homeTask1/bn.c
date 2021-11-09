@@ -88,3 +88,18 @@ int bn_cmp(bn const *left, bn const *right){
         return 1;
     return 0;
 }
+
+int bn_neg(bn *t){
+    t->sign = -t->sign;
+    return 0;
+}
+
+int bn_abs(bn *t){
+    if(t->sign < 0)
+        t->sign = -t->sign;
+    return 0;
+}
+
+int bn_sign(bn const *t){
+    return t->sign;
+}
