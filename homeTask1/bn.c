@@ -1,14 +1,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "bn.h"
+//#include "bn.h"
 
 //#define MOD 4294967296 // 2^32
-const long long MOD = 4294967296;
+//const long long MOD = 4294967296;
+const long long MOD = 1000000000;
 
 struct bn_s{
     // array of digits in base 2^32
     unsigned int *digit;
+
+    // Number of elements allocated
+    // in the digits array
+    int allocd;
 
     //number of digits in base 2^32
     int size;
@@ -23,18 +28,33 @@ bn *bn_new(){
     bignum->size = 1;
     bignum->sign = 0;
     bignum->digit = NULL;
-    bignum->digit = (unsigned int*)malloc(sizeof(unsigned int));
+    bignum->allocd = 4096;
+    bignum->digit = (unsigned int*)malloc(bignum->allocd * sizeof(unsigned int));
     bignum->digit[0] = 0;
     return bignum;
+}
+
+// Change the number of digits
+int bn_resize(bn* t, int new_size){
+    t->size = new_size;
+
+    // If needed, reallocate
+    // more memory for digits
+    if(new_size > t->allocd){
+        t->digit = (unsigned int*)realloc(t->digit, 2 * t->allocd * sizeof(unsigned int));
+        t->allocd *= 2;
+    }
+    return 0;
 }
 
 bn *bn_init(bn const *orig){
     bn* copy = bn_new();
     copy->sign = orig->sign;
-    copy->size = orig->size;
+    int size = orig->size;
+    copy->size = size;
 
-    copy->digit = (unsigned int*)realloc(copy->digit, copy->size*sizeof(unsigned int));
-    for(int i = 0; i < orig->size; i++)
+    bn_resize(copy, size);
+    for(int i = 0; i < size; i++)
         copy->digit[i] = orig->digit[i];
 
     return copy;
@@ -51,8 +71,7 @@ int bn_delete(bn *t){
 }
 
 int bn_init_int(bn *t, int init_int){
-    t->digit = (unsigned int*)realloc(t->digit, sizeof(unsigned int));
-    t->size = 1;
+    bn_resize(t, 1);
     t->digit[0] = init_int;
     t->sign = 1;
 
@@ -110,10 +129,7 @@ int bn_sign(bn const *t){
 int bn_copy(const bn* src, bn* dest){
     dest->sign = src->sign;
     int size = src->size;
-    if(dest->size != size)
-        dest->digit = (unsigned int*)realloc(dest->digit, size*sizeof(unsigned int));
-
-    dest->size = size;
+    bn_resize(dest, size);
 
     for(int i = 0; i < size; i++)
         dest->digit[i] = src->digit[i];
@@ -127,7 +143,7 @@ bn* bn_add_abs(bn const *left, bn const *right){
     int size = size1 > size2? size1 : size2;
 
     bn* res = bn_new();
-    res->digit = (unsigned int*)realloc(res->digit, size*sizeof(unsigned int));
+    bn_resize(res, size);
     
     long long carry = 0, tmp;
     for(int i = 0; i < size; i++){
@@ -140,7 +156,7 @@ bn* bn_add_abs(bn const *left, bn const *right){
 
     if(carry){
         size++;
-        res->digit = (unsigned int*)realloc(res->digit, size*sizeof(unsigned int));
+        bn_resize(res, size);
         res->digit[size-1] = carry;
     }
 
@@ -220,10 +236,8 @@ bn* bn_sub_abs(const bn *left, bn const *right){
     while(res->digit[newsize-1] == 0)
         newsize--;
 
-    if(newsize != size1){
-        res->digit = (unsigned int*)realloc(res->digit, newsize*sizeof(unsigned int));
-        res->size = newsize;
-    }
+    if(newsize != size1)
+        bn_resize(res, newsize);
 
     res->sign = 1;
     return res;
@@ -263,7 +277,7 @@ int bn_add_to(bn *t, bn const *right){
         int size = size1 > size2 ? size1 : size2;
 
         if(a->size < size)
-            a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+            bn_resize(a, size);
 
         long long carry = 0, tmp;
         for(int i = 0; i < size; i++){
@@ -276,7 +290,7 @@ int bn_add_to(bn *t, bn const *right){
 
         if(carry){
             size++;
-            a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+            bn_resize(a, size);
             a->digit[size - 1] = carry;
         }
 
@@ -289,9 +303,8 @@ int bn_add_to(bn *t, bn const *right){
     // else subtract
     int cmp = bn_cmp_abs(a, b);
     if(cmp == 0){
-        a->digit = (unsigned int*)realloc(a->digit, sizeof(unsigned int));
+        bn_resize(a, 1);
         a->digit[0] = 0;
-        a->size = 1;
         a->sign = 0;
         return 0;
     }
@@ -299,7 +312,7 @@ int bn_add_to(bn *t, bn const *right){
     int size = size1 > size2? size1 : size2;
 
     if(size1 < size2)
-        a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+        bn_resize(a, size);
 
     long long tmp, borrowed = 0, i;
     for(i = 0; i < size; i++){
@@ -324,10 +337,8 @@ int bn_add_to(bn *t, bn const *right){
     while(a->digit[newsize-1] == 0)
         newsize--;
 
-    if(newsize != size){
-        a->digit = (unsigned int*)realloc(a->digit, newsize*sizeof(unsigned int));
-        a->size = newsize;
-    }
+    if(newsize != size)
+        bn_resize(a, newsize);
 
     a->sign = cmp;
     return 0;
