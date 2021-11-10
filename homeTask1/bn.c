@@ -136,36 +136,6 @@ int bn_copy(const bn* src, bn* dest){
     return 0;
 }
 
-// Add absolute values of two big numbers
-bn* bn_add_abs(bn const *left, bn const *right){
-    int size1 = left->size, size2 = right->size;
-    int size = size1 > size2? size1 : size2;
-
-    bn* res = bn_new();
-    bn_resize(res, size);
-    
-    long long carry = 0, tmp;
-    for(int i = 0; i < size; i++){
-        tmp = carry;
-        tmp += i < size1? left->digit[i] : 0;
-        tmp += i < size2? right->digit[i] : 0;
-        res->digit[i] = tmp%MOD;
-        carry = tmp/MOD;
-    }
-
-    if(carry){
-        size++;
-        bn_resize(res, size);
-        res->digit[size-1] = carry;
-    }
-
-    res->size = size;
-    //check if the result is zero
-    res->sign = size == 1 && res->digit[0] == 0? 0 : 1;
-
-    return res;
-}
-
 // Compare absolute values of two numbers
 // Returns:
 // -1 if |left| < |right|
@@ -188,60 +158,6 @@ int bn_cmp_abs(const bn *left, bn const *right){
     return cmp;
 }
 
-// TODO: sub_abs
-// Find difference of bignumbers' absolute values
-// bn_sub_abs = abs(|left| - |right|)
-bn* bn_sub_abs(const bn *left, bn const *right){
-    int size1 = left->size, size2 = right->size;
-    int cmp = bn_cmp_abs(left, right);
-
-    if(cmp == 0)
-        return bn_new();
-
-    bn *res = NULL; 
-    const bn *sub = NULL;
-
-    if(cmp > 0){
-        res = bn_init(left);
-        sub = right;
-    }
-    if(cmp < 0){ // if left < right, swap sizes
-        res = bn_init(right);
-        sub = left;
-        int temp_size = size1;
-        size1 = size2;
-        size2 = temp_size;
-    }
-
-    long long tmp, i, borrowed = 0;
-    for(i = 0; i < size1; i++){
-        tmp = res->digit[i] - borrowed;
-        if(i < size2)
-            tmp -= sub->digit[i];
-        borrowed = 0;
-
-        if(tmp < 0){
-            borrowed = 1;
-            tmp += MOD;
-        }
-
-        res->digit[i] = tmp;
-    }
-    if(borrowed)
-        res->digit[i-1]--;
-    
-    // Remove traililng zeros
-    int newsize = size1;
-    while(res->digit[newsize-1] == 0)
-        newsize--;
-
-    if(newsize != size1)
-        bn_resize(res, newsize);
-
-    res->sign = 1;
-    return res;
-}
-
 bn* bn_add(bn const *left, bn const *right){
     bn* res = bn_new();
     bn_copy(left, res);
@@ -250,19 +166,10 @@ bn* bn_add(bn const *left, bn const *right){
     return res;
 }
 
-// TODO: fix this using add_to and sub_to functions
 bn* bn_sub(bn const *left, bn const *right){
-    int sign1 = left->sign, sign2 = right->sign;
     bn* res = NULL;
-
-    if(sign1 != sign2){
-        res = bn_add_abs(left, right);
-        res->sign = sign1;
-        return res;
-    }
-
-    res = bn_sub_abs(left, right);
-    res->sign = bn_cmp_abs(left, right) * sign1;
+    bn_copy(left, res);
+    bn_sub_to(res, right);
 
     return res;
 }
@@ -341,4 +248,10 @@ int bn_add_to(bn *t, bn const *right){
 
     a->sign = cmp;
     return 0;
+}
+
+int bn_sub_to(bn *t, bn const *right){
+    bn_neg(t);
+    bn_add_to(t, right);
+    //bn_neg(t);
 }
