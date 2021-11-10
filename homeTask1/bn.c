@@ -130,8 +130,7 @@ int bn_copy(const bn* src, bn* dest){
     int size = src->size;
     bn_resize(dest, size);
 
-    for(int i = 0; i < size; i++)
-        dest->digit[i] = src->digit[i];
+    memcpy(dest->digit, src->digit, size*sizeof(unsigned int));
 
     return 0;
 }
@@ -251,7 +250,77 @@ int bn_add_to(bn *t, bn const *right){
 }
 
 int bn_sub_to(bn *t, bn const *right){
-    bn_neg(t);
-    bn_add_to(t, right);
-    //bn_neg(t);
+    bn *a = t; 
+    const bn *b = right;
+
+    if(t->sign != right->sign){ // then add their absolute values
+        int size1 = a->size, size2 = b->size;
+        int size = size1 > size2 ? size1 : size2;
+
+        if(a->size < size)
+            bn_resize(a, size);
+
+        long long carry = 0, tmp;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            tmp += i < size1? a->digit[i] : 0;
+            tmp += i < size2? b->digit[i] : 0;
+            a->digit[i] = tmp%MOD;
+            carry = tmp/MOD;
+        }
+
+        if(carry){
+            size++;
+            bn_resize(a, size);
+            a->digit[size - 1] = carry;
+        }
+
+        if(size == 1 && a->digit[0] == 0)
+            a->sign = 0;
+        a->size = size;
+        return 0;
+    }
+
+    // else subtract
+    int cmp = bn_cmp_abs(a, b);
+    if(cmp == 0){
+        bn_resize(a, 1);
+        a->digit[0] = 0;
+        a->sign = 0;
+        return 0;
+    }
+    int size1 = a->size, size2 = b->size;
+    int size = size1 > size2? size1 : size2;
+
+    if(size1 < size2)
+        bn_resize(a, size);
+
+    long long tmp, borrowed = 0, i;
+    for(i = 0; i < size; i++){
+        tmp = -borrowed;
+        if(i < size1)
+            tmp += cmp * (long long)a->digit[i];
+        if(i < size2)
+            tmp -= cmp * (long long)b->digit[i];
+        borrowed = 0;
+
+        if(tmp < 0){
+            borrowed = 1;
+            tmp += MOD;
+        }
+
+        a->digit[i] = tmp;
+    }
+
+    a->size = size;
+
+    int newsize = size;
+    while(a->digit[newsize-1] == 0)
+        newsize--;
+
+    if(newsize != size)
+        bn_resize(a, newsize);
+
+    a->sign = cmp;
+    return 0;
 }
