@@ -7,40 +7,78 @@ void print(bn* a){
     printf("\n");
 }
 
+// TODO: fix this 
+int bn_init_string_to10e9(bn *res, const char *init_string){
+    int n = strlen(init_string);
+
+    //bn* res = bn_new();
+    int size = n/9 + (n%9 != 0);
+    res->size = size;
+    res->sign = 1;
+    res->digit = (unsigned int*)realloc(res->digit, size*sizeof(unsigned int));
+
+    int end = 0;
+    if(init_string[0] == '-'){
+        res->sign = -1;
+        end = 1;
+    }
+    if(init_string[0] == '+'){
+        end = 1;
+    }
+
+    int i = n-1, k = 0;
+    while(i >= end){
+        unsigned int digit = 0, ten = 1;
+
+        for(int j = 0; j < 9 && i-j >= end; j++){
+            digit += ten*(init_string[i-j] - '0');
+            ten *= 10;
+        }
+
+        res->digit[k] = digit;
+        k++;
+        i -= 9;
+    }
+
+    return 0;
+}
+
 int main(){
-    bn *a = bn_new();
-    bn *b = bn_new();
+    int n;
+    //scanf("%d", &n);
 
-    a->size = 3; a->sign = 1;
-    a->digit = (unsigned int*)realloc(a->digit, a->size*sizeof(unsigned int));
-    a->digit[0] = 1;
-    a->digit[1] = 4;
-    a->digit[2] = 3;
+    bn* f1 = bn_new();
+    bn* f2 = bn_new();
 
-    b->size = 3; b->sign = -1;
-    b->digit = (unsigned int*)realloc(b->digit, b->size*sizeof(unsigned int));
-    b->digit[0] = 0;
-    b->digit[1] = 1;
-    b->digit[2] = 3;
-    //b->digit[1] = 4294967295;
+    //bn_init_int(f1, 1);
+    //bn_init_int(f2, 1);
+    bn_init_string_to10e9(f1, "123123348596735683123123456789");
+    bn_init_string_to10e9(f2, "3845762936593457123456789000");
+    //f1->sign = -1;
+    //f2->sign = -1;
 
-    bn* c = bn_sub_abs(a, b);
+    bn* f = bn_add(f1, f2);
+    bn_add_to(f1, f2);
 
-    for(int i = a->size-1; i >= 0; i--)
-        printf("%u ", a->digit[i]);
-    printf("\n");
+    printf("\nsign: %d\nsize: %d\n", f1->sign, f1->size);
+    printf("%u", f1->digit[f1->size - 1]);
+    for(int i = f1->size - 2; i >= 0; i--)
+        printf("%09u", f1->digit[i]);
 
-    for(int i = b->size-1; i >= 0; i--)
-        printf("%u ", b->digit[i]);
-    printf("\n");
+    printf("\n\nsign: %d\nsize: %d\n", f2->sign, f2->size);
+    printf("%u", f2->digit[f2->size - 1]);
+    for(int i = f2->size - 2; i >= 0; i--)
+        printf("%09u", f2->digit[i]);
+    printf("\n\n");
 
-    for(int i = c->size-1; i >= 0; i--)
-        printf("%u ", c->digit[i]);
-    printf("\n");
+    printf("\n\nsign: %d\nsize: %d\n", f->sign, f->size);
+    printf("%u", f->digit[f->size - 1]);
+    for(int i = f->size - 2; i >= 0; i--)
+        printf("%09u", f->digit[i]);
+    printf("\n\n");
 
-    printf("\n");
-    bn_delete(a);
-    bn_delete(b);
-    bn_delete(c);
+    bn_delete(f1);
+    bn_delete(f2);
+    bn_delete(f);
     return 0;
 }

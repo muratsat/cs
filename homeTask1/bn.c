@@ -46,6 +46,7 @@ int bn_delete(bn *t){
     if(t->digit != NULL) 
         free(t->digit);
     free(t);
+    t = NULL;
     return 0;
 }
 
@@ -105,6 +106,21 @@ int bn_sign(bn const *t){
     return t->sign;
 }
 
+// Copy from number SRC to number DEST
+int bn_copy(const bn* src, bn* dest){
+    dest->sign = src->sign;
+    int size = src->size;
+    if(dest->size != size)
+        dest->digit = (unsigned int*)realloc(dest->digit, size*sizeof(unsigned int));
+
+    dest->size = size;
+
+    for(int i = 0; i < size; i++)
+        dest->digit[i] = src->digit[i];
+
+    return 0;
+}
+
 // Add absolute values of two big numbers
 bn* bn_add_abs(bn const *left, bn const *right){
     int size1 = left->size, size2 = right->size;
@@ -157,6 +173,7 @@ int bn_cmp_abs(const bn *left, bn const *right){
     return cmp;
 }
 
+// TODO: sub_abs
 // Find difference of bignumbers' absolute values
 // bn_sub_abs = abs(|left| - |right|)
 bn* bn_sub_abs(const bn *left, bn const *right){
@@ -182,20 +199,21 @@ bn* bn_sub_abs(const bn *left, bn const *right){
     }
 
     long long tmp, i, borrowed = 0;
-    for(i = 0; i < size2; i++){
+    for(i = 0; i < size1; i++){
         tmp = res->digit[i] - borrowed;
+        if(i < size2)
+            tmp -= sub->digit[i];
         borrowed = 0;
 
-        if(tmp < sub->digit[i]){
+        if(tmp < 0){
             borrowed = 1;
             tmp += MOD;
         }
 
-        tmp -= sub->digit[i];
         res->digit[i] = tmp;
     }
     if(borrowed)
-        res->digit[i]--;
+        res->digit[i-1]--;
     
     // Remove traililng zeros
     int newsize = size1;
@@ -212,20 +230,14 @@ bn* bn_sub_abs(const bn *left, bn const *right){
 }
 
 bn* bn_add(bn const *left, bn const *right){
-    int sign1 = left->sign, sign2 = right->sign;
-    bn* res = NULL;
-    if(sign1 == sign2){
-        res = bn_add_abs(left, right);
-        res->sign = sign1;
-        return res;
-    }
-
-    res = bn_sub_abs(left, right);
-    res->sign = bn_cmp_abs(left, right);
+    bn* res = bn_new();
+    bn_copy(left, res);
+    bn_add_to(res, right);
 
     return res;
 }
 
+// TODO: fix this using add_to and sub_to functions
 bn* bn_sub(bn const *left, bn const *right){
     int sign1 = left->sign, sign2 = right->sign;
     bn* res = NULL;
@@ -237,7 +249,86 @@ bn* bn_sub(bn const *left, bn const *right){
     }
 
     res = bn_sub_abs(left, right);
-    res->sign = bn_cmp_abs(left, right);
+    res->sign = bn_cmp_abs(left, right) * sign1;
 
     return res;
+}
+
+int bn_add_to(bn *t, bn const *right){
+    bn *a = t; 
+    const bn *b = right;
+
+    if(t->sign == right->sign){ // then add their absolute values
+        int size1 = a->size, size2 = b->size;
+        int size = size1 > size2 ? size1 : size2;
+
+        if(a->size < size)
+            a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+
+        long long carry = 0, tmp;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            tmp += i < size1? a->digit[i] : 0;
+            tmp += i < size2? b->digit[i] : 0;
+            a->digit[i] = tmp%MOD;
+            carry = tmp/MOD;
+        }
+
+        if(carry){
+            size++;
+            a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+            a->digit[size - 1] = carry;
+        }
+
+        if(size == 1 && a->digit[0] == 0)
+            a->sign = 0;
+        a->size = size;
+        return 0;
+    }
+
+    // else subtract
+    int cmp = bn_cmp_abs(a, b);
+    if(cmp == 0){
+        a->digit = (unsigned int*)realloc(a->digit, sizeof(unsigned int));
+        a->digit[0] = 0;
+        a->size = 1;
+        a->sign = 0;
+        return 0;
+    }
+    int size1 = a->size, size2 = b->size;
+    int size = size1 > size2? size1 : size2;
+
+    if(size1 < size2)
+        a->digit = (unsigned int*)realloc(a->digit, size*sizeof(unsigned int));
+
+    long long tmp, borrowed = 0, i;
+    for(i = 0; i < size; i++){
+        tmp = -borrowed;
+        if(i < size1)
+            tmp += cmp * (long long)a->digit[i];
+        if(i < size2)
+            tmp -= cmp * (long long)b->digit[i];
+        borrowed = 0;
+
+        if(tmp < 0){
+            borrowed = 1;
+            tmp += MOD;
+        }
+
+        a->digit[i] = tmp;
+    }
+
+    a->size = size;
+
+    int newsize = size;
+    while(a->digit[newsize-1] == 0)
+        newsize--;
+
+    if(newsize != size){
+        a->digit = (unsigned int*)realloc(a->digit, newsize*sizeof(unsigned int));
+        a->size = newsize;
+    }
+
+    a->sign = cmp;
+    return 0;
 }
