@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-//#include "bn.h"
+#include "bn.h"
 
 //#define MOD 4294967296 // 2^32
-//const long long MOD = 4294967296;
-const long long MOD = 1000000000;
+const long long MOD = 4294967296;
 
 struct bn_s{
     // array of digits in base 2^32
