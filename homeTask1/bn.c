@@ -48,13 +48,7 @@ int bn_resize(bn* t, int new_size){
 
 bn *bn_init(bn const *orig){
     bn* copy = bn_new();
-    copy->sign = orig->sign;
-    int size = orig->size;
-    copy->size = size;
-
-    bn_resize(copy, size);
-    for(int i = 0; i < size; i++)
-        copy->digit[i] = orig->digit[i];
+    bn_copy(orig, copy);
 
     return copy;
 }
