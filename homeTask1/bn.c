@@ -7,14 +7,14 @@
 const long long MOD = 4294967296;
 
 struct bn_s{
-    // array of digits in base 2^32
+    // array of digits in base MOD
     unsigned int *digit;
 
     // Number of elements allocated
     // in the digits array
     int allocd;
 
-    //number of digits in base 2^32
+    //number of digits in base MOD
     int size;
 
     // sign=-1 if bn < 0; sign=1 if bn > 0; sign=0 if bn=0 
@@ -43,6 +43,17 @@ int bn_resize(bn* t, int new_size){
         t->digit = (unsigned int*)realloc(t->digit, 2 * t->allocd * sizeof(unsigned int));
         t->allocd *= 2;
     }
+    return 0;
+}
+
+// Copy from number SRC to number DEST
+int bn_copy(const bn* src, bn* dest){
+    dest->sign = src->sign;
+    int size = src->size;
+    bn_resize(dest, size);
+
+    memcpy(dest->digit, src->digit, size*sizeof(unsigned int));
+
     return 0;
 }
 
@@ -116,17 +127,6 @@ int bn_abs(bn *t){
 
 int bn_sign(bn const *t){
     return t->sign;
-}
-
-// Copy from number SRC to number DEST
-int bn_copy(const bn* src, bn* dest){
-    dest->sign = src->sign;
-    int size = src->size;
-    bn_resize(dest, size);
-
-    memcpy(dest->digit, src->digit, size*sizeof(unsigned int));
-
-    return 0;
 }
 
 // Compare absolute values of two numbers
