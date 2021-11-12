@@ -27,8 +27,8 @@ bn *bn_new(){
     bignum->size = 1;
     bignum->sign = 0;
     bignum->digit = NULL;
-    bignum->allocd = 4096;
-    bignum->digit = (unsigned int*)malloc(bignum->allocd * sizeof(unsigned int));
+    bignum->allocd = 2048;
+    bignum->digit = (unsigned int*)calloc(bignum->allocd, sizeof(unsigned int));
     bignum->digit[0] = 0;
     return bignum;
 }
@@ -153,12 +153,13 @@ int bn_cmp_abs(const bn *left, bn const *right){
 
 // Remove trailing zeros
 int bn_normalize(bn* a){
-    int newsize = a->size;
-    while(a->digit[newsize-1] == 0)
+    int newsize = a->size-1;
+    while(newsize > 0){
+        if(a->digit[newsize] != 0)
+            break;
         newsize--;
-
-    if(newsize != a->size)
-        bn_resize(a, newsize);
+    }
+    bn_resize(a, newsize + 1);
 
     return 0;
 }
@@ -326,7 +327,42 @@ void bn_print(const bn* f){
     if(f->sign < 0) printf("-");
     printf("%u", f->digit[f->size - 1]);
     for(int i = f->size - 2; i >= 0; i--)
-        printf("%u", f->digit[i]);
-        //printf("%09u", f->digit[i]);
+        printf("%09u", f->digit[i]);
     printf("\n\n");
+}
+
+bn* bn_mul(const bn *a, const bn *b){
+    int size_a = a->size, size_b = b->size;
+
+    bn *res = bn_new(); 
+    bn_resize(res, size_a + size_b);
+
+    bn* t = bn_new();
+    bn_resize(t, size_a + size_b);
+
+    for(int j = 0; j < size_b; j++){
+        memcpy(t->digit + j, a->digit, size_a * sizeof(unsigned int));
+        if(j > 0)
+            t->digit[j-1] = 0;
+
+        long long tmp, carry = 0;
+
+        for(int i = 0; i < size_a; i++){
+            tmp = (long long)b->digit[j] * (long long)a->digit[i];
+            tmp += carry;
+            t->digit[j + i] = tmp % MOD;
+            carry = tmp / MOD;
+        }
+
+        if(carry)
+            t->digit[j + size_a] = carry;
+
+        bn_add_to(res, t);
+    }
+
+    res->sign = a->sign * b->sign;
+
+    bn_normalize(res);
+    bn_delete(t);
+    return res;
 }
