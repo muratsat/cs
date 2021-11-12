@@ -4,7 +4,7 @@
 #include "bn.h"
 
 //#define MOD 4294967296 // 2^32
-const long long MOD = 4294967296;
+const long long MOD = 1000000000;
 
 struct bn_s{
     // array of digits in base MOD
@@ -151,6 +151,18 @@ int bn_cmp_abs(const bn *left, bn const *right){
     return cmp;
 }
 
+// Remove trailing zeros
+int bn_normalize(bn* a){
+    int newsize = a->size;
+    while(a->digit[newsize-1] == 0)
+        newsize--;
+
+    if(newsize != a->size)
+        bn_resize(a, newsize);
+
+    return 0;
+}
+
 bn* bn_add(bn const *left, bn const *right){
     bn* res = bn_new();
     bn_copy(left, res);
@@ -232,12 +244,7 @@ int bn_add_to(bn *t, bn const *right){
 
     a->size = size;
 
-    int newsize = size;
-    while(a->digit[newsize-1] == 0)
-        newsize--;
-
-    if(newsize != size)
-        bn_resize(a, newsize);
+    bn_normalize(a);
 
     a->sign = cmp;
     return 0;
@@ -308,13 +315,18 @@ int bn_sub_to(bn *t, bn const *right){
 
     a->size = size;
 
-    int newsize = size;
-    while(a->digit[newsize-1] == 0)
-        newsize--;
-
-    if(newsize != size)
-        bn_resize(a, newsize);
+    bn_normalize(a);
 
     a->sign = cmp;
     return 0;
+}
+
+void bn_print(const bn* f){
+    //printf("\nsign: %d\nsize: %d\n", f->sign, f->size);
+    if(f->sign < 0) printf("-");
+    printf("%u", f->digit[f->size - 1]);
+    for(int i = f->size - 2; i >= 0; i--)
+        printf("%u", f->digit[i]);
+        //printf("%09u", f->digit[i]);
+    printf("\n\n");
 }
