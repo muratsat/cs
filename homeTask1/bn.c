@@ -406,3 +406,27 @@ int bn_mul_to(bn *a, bn const *b){
     bn_delete(t);
     return 0;
 }
+
+// Multibly bignum A by integer B
+int bn_mul_int(bn* a, int b){
+    int size_a = a->size, i;
+    long long tmp, carry = 0;
+
+    if(b < 0){
+        a->sign *= -1;
+        b = -b;
+    }
+
+    for(i = 0; i < size_a; i++){
+        tmp = (long long)a->digit[i] * (long long)b + carry;
+        a->digit[i] = tmp % MOD;
+        carry = tmp / MOD;
+    }
+
+    if(carry){
+        bn_resize(a, size_a + 1);
+        a->digit[size_a] = carry;
+    }
+
+    return 0;
+}
