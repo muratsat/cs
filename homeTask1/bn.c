@@ -405,9 +405,9 @@ int bn_pow_to(bn *a, int n){
     bn_init_int(a, 1);
 
     while(n > 0){
-
         if(n%2 == 1)
             bn_mul_to(a, t);
+
         bn_mul_to(t, t);
         n /= 2;
     }
