@@ -160,6 +160,8 @@ int bn_normalize(bn* a){
         newsize--;
     }
     bn_resize(a, newsize + 1);
+    if(a->size == 1 && a->digit[0] == 0)
+        a->sign = 0;
 
     return 0;
 }
@@ -365,4 +367,42 @@ bn* bn_mul(const bn *a, const bn *b){
     bn_normalize(res);
     bn_delete(t);
     return res;
+}
+
+int bn_mul_to(bn *a, bn const *b){
+    int size_a = a->size, size_b = b->size;
+
+    bn* at = bn_init(a);
+    bn* t = bn_new();
+    t->sign = 1;
+    bn_copy(t, a);
+
+    for(int j = 0; j < size_b; j++){
+        bn_resize(t, size_a + j);
+        memcpy(t->digit + j, at->digit, size_a * sizeof(unsigned int));
+        if(j > 0)
+            t->digit[j-1] = 0;
+
+        long long tmp, carry = 0;
+        for(int i = 0; i < size_a; i++){
+            tmp = (long long)b->digit[j] * (long long)at->digit[i];
+            tmp += carry;
+            t->digit[j + i] = tmp % MOD;
+            carry = tmp / MOD;
+        }
+
+        if(carry){
+            bn_resize(t, j + size_a + 1);
+            t->digit[j + size_a] = carry;
+        }
+
+        bn_add_to(a, t);
+    }
+
+    bn_normalize(a);
+    a->sign = at->sign * b->sign;
+
+    bn_delete(at);
+    bn_delete(t);
+    return 0;
 }
