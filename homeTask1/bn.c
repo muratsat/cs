@@ -370,39 +370,8 @@ bn* bn_mul(const bn *a, const bn *b){
 }
 
 int bn_mul_to(bn *a, bn const *b){
-    int size_a = a->size, size_b = b->size;
-
-    bn* at = bn_init(a);
-    bn* t = bn_new();
-    t->sign = 1;
+    bn* t = bn_mul(a, b);
     bn_copy(t, a);
-
-    for(int j = 0; j < size_b; j++){
-        bn_resize(t, size_a + j);
-        memcpy(t->digit + j, at->digit, size_a * sizeof(unsigned int));
-        if(j > 0)
-            t->digit[j-1] = 0;
-
-        long long tmp, carry = 0;
-        for(int i = 0; i < size_a; i++){
-            tmp = (long long)b->digit[j] * (long long)at->digit[i];
-            tmp += carry;
-            t->digit[j + i] = tmp % MOD;
-            carry = tmp / MOD;
-        }
-
-        if(carry){
-            bn_resize(t, j + size_a + 1);
-            t->digit[j + size_a] = carry;
-        }
-
-        bn_add_to(a, t);
-    }
-
-    bn_normalize(a);
-    a->sign = at->sign * b->sign;
-
-    bn_delete(at);
     bn_delete(t);
     return 0;
 }
@@ -428,5 +397,21 @@ int bn_mul_int(bn* a, int b){
         a->digit[size_a] = carry;
     }
 
+    return 0;
+}
+
+int bn_pow_to(bn *a, int n){
+    bn* t = bn_init(a);
+    bn_init_int(a, 1);
+
+    while(n > 0){
+
+        if(n%2 == 1)
+            bn_mul_to(a, t);
+        bn_mul_to(t, t);
+        n /= 2;
+    }
+
+    bn_delete(t);
     return 0;
 }
