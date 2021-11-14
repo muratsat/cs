@@ -3,18 +3,18 @@
 #include <string.h>
 #include "bn.h"
 
-//#define MOD 4294967296 // 2^32
-const long long MOD = 1000000000;
+//#define BASE 4294967296 // 2^32
+const long long BASE = 1000000000;
 
 struct bn_s{
-    // array of digits in base MOD
+    // array of digits in base BASE 
     unsigned int *digit;
 
     // Number of elements allocated
     // in the digits array
     int allocd;
 
-    //number of digits in base MOD
+    //number of digits in base BASE 
     int size;
 
     // sign=-1 if bn < 0; sign=1 if bn > 0; sign=0 if bn=0 
@@ -200,8 +200,8 @@ int bn_add_to(bn *t, bn const *right){
             tmp = carry;
             tmp += i < size1? a->digit[i] : 0;
             tmp += i < size2? b->digit[i] : 0;
-            a->digit[i] = tmp%MOD;
-            carry = tmp/MOD;
+            a->digit[i] = tmp%BASE;
+            carry = tmp/BASE;
         }
 
         if(carry){
@@ -241,7 +241,7 @@ int bn_add_to(bn *t, bn const *right){
 
         if(tmp < 0){
             borrowed = 1;
-            tmp += MOD;
+            tmp += BASE;
         }
 
         a->digit[i] = tmp;
@@ -278,8 +278,8 @@ int bn_sub_to(bn *t, bn const *right){
             tmp = carry;
             tmp += i < size1? a->digit[i] : 0;
             tmp += i < size2? b->digit[i] : 0;
-            a->digit[i] = tmp%MOD;
-            carry = tmp/MOD;
+            a->digit[i] = tmp%BASE;
+            carry = tmp/BASE;
         }
 
         if(carry){
@@ -319,7 +319,7 @@ int bn_sub_to(bn *t, bn const *right){
 
         if(tmp < 0){
             borrowed = 1;
-            tmp += MOD;
+            tmp += BASE;
         }
 
         a->digit[i] = tmp;
@@ -377,8 +377,8 @@ bn* bn_mul(const bn *a, const bn *b){
         for(int i = 0; i < size_a; i++){
             tmp = (long long)b->digit[j] * (long long)a->digit[i];
             tmp += carry;
-            t->digit[j + i] = tmp % MOD;
-            carry = tmp / MOD;
+            t->digit[j + i] = tmp % BASE;
+            carry = tmp / BASE;
         }
 
         if(carry)
@@ -418,8 +418,8 @@ int bn_mul_int(bn* a, int b){
 
     for(i = 0; i < size_a; i++){
         tmp = (long long)a->digit[i] * (long long)b + carry;
-        a->digit[i] = tmp % MOD;
-        carry = tmp / MOD;
+        a->digit[i] = tmp % BASE;
+        carry = tmp / BASE;
     }
 
     if(carry){
@@ -447,7 +447,7 @@ int bn_pow_to(bn *a, int n){
 }
 
 int bn_init_string(bn *t, const char *init_string){
-    if(MOD != 1000000000)
+    if(BASE != 1000000000)
         return bn_init_string_radix(t, init_string, 10);
 
     int len = strlen(init_string), end = 0, sign = 1;
@@ -530,7 +530,7 @@ int bn_div_to_int(bn* a, int D){
     int remainder = 0;
 
     for(int i = a->size-1; i >= 0; i--){
-        tmp = MOD * remainder + a->digit[i];
+        tmp = BASE * remainder + a->digit[i];
         a->digit[i] = tmp / D;
         remainder = tmp % D;
     }
