@@ -3,8 +3,8 @@
 #include <string.h>
 #include "bn.h"
 
-//#define BASE 4294967296 // 2^32
-const long long BASE = 1000000000;
+#define BASE 4294967296// 2^32
+//const long long BASE = 4294967296;
 
 struct bn_s{
     // array of digits in base BASE 
@@ -349,13 +349,11 @@ bn* bn_sub(bn const *left, bn const *right){
     return res;
 }
 
-void bn_print(const bn* f){
-    //printf("\nsign: %d\nsize: %d\n", f->sign, f->size);
-    if(f->sign < 0) printf("-");
-    printf("%u", f->digit[f->size - 1]);
-    for(int i = f->size - 2; i >= 0; i--)
-        printf("%09u", f->digit[i]);
-    printf("\n");
+// print the bn A in base 10
+void bn_print(const bn* a){
+    const char* s = bn_to_string(a, 10);
+    printf("%s\n", s);
+    free((void*)s);
 }
 
 bn* bn_mul(const bn *a, const bn *b){
@@ -446,40 +444,6 @@ int bn_pow_to(bn *a, int n){
     return 0;
 }
 
-int bn_init_string(bn *t, const char *init_string){
-    if(BASE != 1000000000)
-        return bn_init_string_radix(t, init_string, 10);
-
-    int len = strlen(init_string), end = 0, sign = 1;
-
-    int n = len;
-    if(init_string[0] == '-'){
-        sign = -1;
-        end = 1;
-        n--;
-    }
-
-    int size = n/9 + (n%9 != 0);
-
-    t->sign = sign;
-    t->size = size;
-
-    int k = 0;
-    for(int i = len-1; i >= end; i -= 9){
-        int digit = 0, ten = 1;
-        for(int j = 0; j < 9 && i-j >= end; j++){
-            digit += ten * (init_string[i-j] - '0');
-            ten *= 10;
-        }
-
-        t->digit[k] = digit;
-        k++;
-    }
-    bn_normalize(t);
-    return 0;
-}
-
-
 int bn_init_string_radix(bn *t, const char *init_string, int radix){
     unsigned char DigitValue[256] = {
          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -523,6 +487,39 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
     return 0;
 }
 
+int bn_init_string(bn *t, const char *init_string){
+    if(BASE != 1000000000)
+        return bn_init_string_radix(t, init_string, 10);
+
+    int len = strlen(init_string), end = 0, sign = 1;
+
+    int n = len;
+    if(init_string[0] == '-'){
+        sign = -1;
+        end = 1;
+        n--;
+    }
+
+    int size = n/9 + (n%9 != 0);
+
+    t->sign = sign;
+    t->size = size;
+
+    int k = 0;
+    for(int i = len-1; i >= end; i -= 9){
+        int digit = 0, ten = 1;
+        for(int j = 0; j < 9 && i-j >= end; j++){
+            digit += ten * (init_string[i-j] - '0');
+            ten *= 10;
+        }
+
+        t->digit[k] = digit;
+        k++;
+    }
+    bn_normalize(t);
+    return 0;
+}
+
 // Divide integer A by in D
 // and return the remainder
 int bn_div_to_int(bn* a, int D){
@@ -540,7 +537,7 @@ int bn_div_to_int(bn* a, int D){
 }
 
 const char *bn_to_string(bn const *t, int radix){
-    int size = 0;
+    int size = t->sign < 0;
     bn *a = bn_init(t);
 
     while(a->sign != 0){
@@ -556,6 +553,8 @@ const char *bn_to_string(bn const *t, int radix){
 
     char* res = (char*)malloc((size+1) * sizeof(char));
     res[size] = '\0';
+    if(t->sign < 0)
+        res[0] = '-';
     bn_copy(t, a);
 
     int r, k = 0;

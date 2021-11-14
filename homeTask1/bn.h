@@ -67,6 +67,3 @@ int bn_neg(bn *t);
 int bn_abs(bn *t);
 //-1 если t<0; 0 если t = 0, 1 если t>0
 int bn_sign(bn const *t); 
-
-//напечатать
-void print();
