@@ -518,3 +518,65 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
     bn_delete(T);
     return 0;
 }
+
+// Divide integer A by in D
+// and return the remainder
+int bn_div_to_int(bn* a, int D){
+    long long tmp;
+    int remainder = 0;
+
+    for(int i = a->size-1; i >= 0; i--){
+        tmp = MOD * remainder + a->digit[i];
+        a->digit[i] = tmp / D;
+        remainder = tmp % D;
+    }
+
+    bn_normalize(a);
+    return remainder;
+}
+
+const char *bn_to_string(bn const *t, int radix){
+    int size = 0;
+    bn *a = bn_init(t);
+
+    while(a->sign != 0){
+        bn_div_to_int(a, radix);
+        size++;
+    }
+
+    char charValue[] = {
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 
+        'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 
+        'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+    };
+
+    char* res = (char*)malloc((size+1) * sizeof(char));
+    res[size] = '\0';
+    bn_copy(t, a);
+
+    int r, k = 0;
+    while(a->sign != 0){
+        r = bn_div_to_int(a, radix);
+        res[size - 1 - k] = charValue[r];
+        k++;
+    }
+
+    bn_delete(a);
+    return res;
+}
+
+int main(){
+    printf("\n\n\n\n-------------------------------------- \n");
+    bn* a = bn_new();
+    bn_init_string_radix(a, "AAAA", 16);
+
+    const char *r1 = bn_to_string(a,16); // r1 -> "111"
+    printf("a=%s\n", r1);
+    free(r1);
+
+    bn_print(a);
+
+    printf("-------------------------------------- \n\n\n\n\n");
+    bn_delete(a);
+    return 0;
+}
