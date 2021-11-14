@@ -129,6 +129,17 @@ int bn_sign(bn const *t){
     return t->sign;
 }
 
+// change all digits to zero
+int bn_zero(bn *t){
+    t->sign = 0;
+    t->size = 1;
+    int allocd = t->allocd;
+    unsigned int* tmp = (unsigned int*)calloc(allocd, sizeof(unsigned int));
+    memcpy(t->digit, tmp, allocd*sizeof(unsigned int));
+    free(tmp);
+    return 0;
+}
+
 // Compare absolute values of two numbers
 // Returns:
 // -1 if |left| < |right|
@@ -166,25 +177,16 @@ int bn_normalize(bn* a){
     return 0;
 }
 
-bn* bn_add(bn const *left, bn const *right){
-    bn* res = bn_new();
-    bn_copy(left, res);
-    bn_add_to(res, right);
-
-    return res;
-}
-
-bn* bn_sub(bn const *left, bn const *right){
-    bn* res = NULL;
-    bn_copy(left, res);
-    bn_sub_to(res, right);
-
-    return res;
-}
-
 int bn_add_to(bn *t, bn const *right){
     bn *a = t; 
     const bn *b = right;
+
+    if(a->sign == 0){
+        bn_copy(b, a);
+        return 0;
+    }
+    if(b->sign == 0)
+        return 0;
 
     if(t->sign == right->sign){ // then add their absolute values
         int size1 = a->size, size2 = b->size;
@@ -257,6 +259,13 @@ int bn_sub_to(bn *t, bn const *right){
     bn *a = t; 
     const bn *b = right;
 
+    if(a->sign == 0){
+        bn_copy(b, a);
+        return 0;
+    }
+    if(b->sign == 0)
+        return 0;
+
     if(t->sign != right->sign){ // then add their absolute values
         int size1 = a->size, size2 = b->size;
         int size = size1 > size2 ? size1 : size2;
@@ -324,13 +333,29 @@ int bn_sub_to(bn *t, bn const *right){
     return 0;
 }
 
+bn* bn_add(bn const *left, bn const *right){
+    bn* res = bn_new();
+    bn_copy(left, res);
+    bn_add_to(res, right);
+
+    return res;
+}
+
+bn* bn_sub(bn const *left, bn const *right){
+    bn* res = NULL;
+    bn_copy(left, res);
+    bn_sub_to(res, right);
+
+    return res;
+}
+
 void bn_print(const bn* f){
     //printf("\nsign: %d\nsize: %d\n", f->sign, f->size);
     if(f->sign < 0) printf("-");
     printf("%u", f->digit[f->size - 1]);
     for(int i = f->size - 2; i >= 0; i--)
         printf("%09u", f->digit[i]);
-    printf("\n\n");
+    printf("\n");
 }
 
 bn* bn_mul(const bn *a, const bn *b){
@@ -413,5 +438,83 @@ int bn_pow_to(bn *a, int n){
     }
 
     bn_delete(t);
+    return 0;
+}
+
+int bn_init_string(bn *t, const char *init_string){
+    if(MOD != 1000000000)
+        return bn_init_string_radix(t, init_string, 10);
+
+    int len = strlen(init_string), end = 0, sign = 1;
+
+    int n = len;
+    if(init_string[0] == '-'){
+        sign = -1;
+        end = 1;
+        n--;
+    }
+
+    int size = n/9 + (n%9 != 0);
+
+    t->sign = sign;
+    t->size = size;
+
+    int k = 0;
+    for(int i = len-1; i >= end; i -= 9){
+        int digit = 0, ten = 1;
+        for(int j = 0; j < 9 && i-j >= end; j++){
+            digit += ten * (init_string[i-j] - '0');
+            ten *= 10;
+        }
+
+        t->digit[k] = digit;
+        k++;
+    }
+    bn_normalize(t);
+    return 0;
+}
+
+
+int bn_init_string_radix(bn *t, const char *init_string, int radix){
+    unsigned char DigitValue[256] = {
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  37, 37, 37, 37, 37, 37,
+        37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37, 37,
+        37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+        37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+    };
+
+    int len = strlen(init_string), end = 0, sign = 1;
+
+    bn_zero(t);
+    bn* T = bn_new();
+    bn_init_int(T, 1);
+
+    if(init_string[0] == '-'){
+        sign = -1;
+        end = 1;
+    }
+
+    for(int i = len-1; i >= end; i--){
+        bn* tmp = bn_init(T);
+        int digit = DigitValue[init_string[i]];
+        bn_mul_int(tmp, DigitValue[init_string[i]]);
+        bn_add_to(t, tmp);
+        bn_mul_int(T, radix);
+        bn_delete(tmp);
+    }
+
+    bn_delete(T);
     return 0;
 }
