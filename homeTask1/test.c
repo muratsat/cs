@@ -39,6 +39,15 @@ int bn_init_string_to10e9(bn *res, const char *init_string){
 }
 
 int main(){
+    printf("\n\n\n\n-------------------------------------- \n");
+    bn* a = bn_new();
+    bn_init_string_radix(a, "AAAA", 16);
+    const char *r1 = bn_to_string(a,16); // r1 -> "111"
+    printf("a=%s\n", r1);
+    free(r1);
+    bn_print(a);
+    printf("-------------------------------------- \n\n\n\n\n");
+    bn_delete(a);
 
     return 0;
 }
