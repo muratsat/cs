@@ -39,9 +39,12 @@ int bn_resize(bn* t, int new_size){
 
     // If needed, reallocate
     // more memory for digits
-    if(new_size > t->allocd){
-        t->digit = (unsigned int*)realloc(t->digit, 2 * t->allocd * sizeof(unsigned int));
-        t->allocd *= 2;
+    int allocd = t->allocd;
+    if(new_size > allocd){
+        allocd *= 2;
+        allocd = new_size > allocd? new_size : allocd;
+        t->digit = (unsigned int*)realloc(t->digit, 2 * allocd * sizeof(unsigned int));
+        t->allocd = allocd;
     }
     return 0;
 }
@@ -425,6 +428,7 @@ int bn_mul_int(bn* a, int b){
         a->digit[size_a] = carry;
     }
 
+    bn_normalize(a);
     return 0;
 }
 
