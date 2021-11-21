@@ -486,6 +486,7 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
         bn_mul_int(T, radix);
         bn_delete(tmp);
     }
+    t->sign = sign;
 
     bn_delete(T);
     return 0;
@@ -570,4 +571,30 @@ const char *bn_to_string(bn const *t, int radix){
 
     bn_delete(a);
     return res;
+}
+
+int bn_div_to(bn *t, bn const *right){
+    bn* a = t;
+    bn const* b = right;
+    int size_a = a->size, size_b = b->size;
+    int sign_a = a->sign, sign_b = b->sign;
+
+    if(sign_b == 0)
+        return BN_DIVIDE_BY_ZERO;
+
+    int cmp = bn_cmp_abs(a, b);
+
+    if(cmp < 0){
+        bn_zero(t);
+        t->sign = sign_a * sign_b;
+        if(sign_a != sign_b){
+            bn_init_int(t, -1);
+        }
+
+        return BN_OK;
+    }
+
+    //TODO: COMPLETE THE METHOD IF abs(A) > abs(B) 
+
+    return BN_OK;
 }
