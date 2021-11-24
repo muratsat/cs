@@ -148,7 +148,7 @@ int bn_zero(bn *t){
 // -1 if |left| < |right|
 //  0 if |left| = |right|
 //  1 if |left| > |right|
-int bn_cmp_abs(const bn *left, bn const *right){
+int bn_cmp_abs(bn const *left, bn const *right){
     int size1 = left->size, size2 = right->size;
     int cmp = size1 < size2? -1 : 1;
 
@@ -254,7 +254,7 @@ int bn_add_to(bn *t, bn const *right){
 
     bn_normalize(a);
 
-    a->sign = cmp;
+    a->sign = cmp*a->sign;
     return 0;
 }
 
@@ -332,7 +332,7 @@ int bn_sub_to(bn *t, bn const *right){
 
     bn_normalize(a);
 
-    a->sign = cmp;
+    a->sign = cmp*a->sign;
     return 0;
 }
 
@@ -345,7 +345,7 @@ bn* bn_add(bn const *left, bn const *right){
 }
 
 bn* bn_sub(bn const *left, bn const *right){
-    bn* res = NULL;
+    bn* res = bn_new();
     bn_copy(left, res);
     bn_sub_to(res, right);
 
@@ -481,7 +481,7 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
 
     for(int i = len-1; i >= end; i--){
         bn* tmp = bn_init(T);
-        bn_mul_int(tmp, DigitValue[init_string[i]]);
+        bn_mul_int(tmp, DigitValue[(int)init_string[i]]);
         bn_add_to(t, tmp);
         bn_mul_int(T, radix);
         bn_delete(tmp);
@@ -527,7 +527,7 @@ int bn_init_string(bn *t, const char *init_string){
 
 // Divide integer A by in D
 // and return the remainder
-int bn_div_to_int(bn* a, int D){
+int bn_div_int(bn* a, int D){
     long long tmp;
     int remainder = 0;
 
@@ -542,11 +542,11 @@ int bn_div_to_int(bn* a, int D){
 }
 
 const char *bn_to_string(bn const *t, int radix){
-    int size = t->sign < 0;
+    int size = t->sign <= 0;
     bn *a = bn_init(t);
 
     while(a->sign != 0){
-        bn_div_to_int(a, radix);
+        bn_div_int(a, radix);
         size++;
     }
 
@@ -563,11 +563,11 @@ const char *bn_to_string(bn const *t, int radix){
     bn_copy(t, a);
 
     int r, k = 0;
-    while(a->sign != 0){
-        r = bn_div_to_int(a, radix);
+    do {
+        r = bn_div_int(a, radix);
         res[size - 1 - k] = charValue[r];
         k++;
-    }
+    } while(a->sign != 0);
 
     bn_delete(a);
     return res;
@@ -580,7 +580,7 @@ int bn_div_to(bn *t, bn const *right){
     int sign_a = a->sign, sign_b = b->sign;
 
     if(sign_b == 0)
-        return BN_DIVIDE_BY_ZERO;
+        return 3;
 
     int cmp = bn_cmp_abs(a, b);
 
@@ -591,10 +591,26 @@ int bn_div_to(bn *t, bn const *right){
             bn_init_int(t, -1);
         }
 
-        return BN_OK;
+        return 0;
     }
 
     //TODO: COMPLETE THE METHOD IF abs(A) > abs(B) 
 
-    return BN_OK;
+    return 0;
+}
+
+int bn_mod_to(bn *t, bn const *right){
+    return 0;
+}
+
+int bn_root_to(bn *t, int reciprocal){
+    return 0;
+}
+
+bn* bn_div(bn const *left, bn const *right){
+    return bn_new();
+}
+
+bn* bn_mod(bn const *left, bn const *right){
+    return bn_new();
 }
