@@ -96,13 +96,13 @@ int bn_cmp(bn const *left, bn const *right){
     int sign1 = left->sign, sign2 = right->sign;
     int size1 = left->size, size2 = right->size;
 
-    long long sign = size1 * sign1 - size2 * sign2;
+    unsigned long long sign = size1 * sign1 - size2 * sign2;
 
     if(sign == 0){
-        long long i = size1, diff;
+        unsigned long long i = size1, diff;
 
         while(--i >= 0){
-            diff = (long long)left->digit[i] - (long long)right->digit[i];
+            diff = (unsigned long long)left->digit[i] - (unsigned long long)right->digit[i];
             if(diff != 0)
                 break;
         }
@@ -198,12 +198,12 @@ int bn_add_to(bn *t, bn const *right){
         if(a->size < size)
             bn_resize(a, size);
 
-        long long carry = 0, tmp;
+        unsigned long long carry = 0, tmp;
         for(int i = 0; i < size; i++){
             tmp = carry;
             tmp += i < size1? a->digit[i] : 0;
             tmp += i < size2? b->digit[i] : 0;
-            a->digit[i] = tmp%BASE;
+            a->digit[i] = tmp;
             carry = tmp/BASE;
         }
 
@@ -233,13 +233,13 @@ int bn_add_to(bn *t, bn const *right){
     if(size1 < size2)
         bn_resize(a, size);
 
-    long long tmp, borrowed = 0, i;
+    unsigned long long tmp, borrowed = 0, i;
     for(i = 0; i < size; i++){
         tmp = -borrowed;
         if(i < size1)
-            tmp += cmp * (long long)a->digit[i];
+            tmp += cmp * (unsigned long long)a->digit[i];
         if(i < size2)
-            tmp -= cmp * (long long)b->digit[i];
+            tmp -= cmp * (unsigned long long)b->digit[i];
         borrowed = 0;
 
         if(tmp < 0){
@@ -276,7 +276,7 @@ int bn_sub_to(bn *t, bn const *right){
         if(a->size < size)
             bn_resize(a, size);
 
-        long long carry = 0, tmp;
+        unsigned long long carry = 0, tmp;
         for(int i = 0; i < size; i++){
             tmp = carry;
             tmp += i < size1? a->digit[i] : 0;
@@ -311,13 +311,13 @@ int bn_sub_to(bn *t, bn const *right){
     if(size1 < size2)
         bn_resize(a, size);
 
-    long long tmp, borrowed = 0, i;
+    unsigned long long tmp, borrowed = 0, i;
     for(i = 0; i < size; i++){
         tmp = -borrowed;
         if(i < size1)
-            tmp += cmp * (long long)a->digit[i];
+            tmp += cmp * (unsigned long long)a->digit[i];
         if(i < size2)
-            tmp -= cmp * (long long)b->digit[i];
+            tmp -= cmp * (unsigned long long)b->digit[i];
         borrowed = 0;
 
         if(tmp < 0){
@@ -352,13 +352,6 @@ bn* bn_sub(bn const *left, bn const *right){
     return res;
 }
 
-// print the bn A in base 10
-void bn_print(const bn* a){
-    const char* s = bn_to_string(a, 10);
-    printf("%s\n", s);
-    free((void*)s);
-}
-
 bn* bn_mul(const bn *a, const bn *b){
     int size_a = a->size, size_b = b->size;
 
@@ -373,12 +366,12 @@ bn* bn_mul(const bn *a, const bn *b){
         if(j > 0)
             t->digit[j-1] = 0;
 
-        long long tmp, carry = 0;
+        unsigned long long tmp, carry = 0;
 
         for(int i = 0; i < size_a; i++){
-            tmp = (long long)b->digit[j] * (long long)a->digit[i];
+            tmp = (unsigned long long)b->digit[j] * (unsigned long long)a->digit[i];
             tmp += carry;
-            t->digit[j + i] = tmp % BASE;
+            t->digit[j + i] = tmp;
             carry = tmp / BASE;
         }
 
@@ -405,7 +398,7 @@ int bn_mul_to(bn *a, bn const *b){
 // Multibly bignum A by integer B
 int bn_mul_int(bn* a, int b){
     int size_a = a->size, i;
-    long long tmp, carry = 0;
+    unsigned long long tmp, carry = 0;
 
     if(b == 0){
         bn_zero(a);
@@ -418,8 +411,8 @@ int bn_mul_int(bn* a, int b){
     }
 
     for(i = 0; i < size_a; i++){
-        tmp = (long long)a->digit[i] * (long long)b + carry;
-        a->digit[i] = tmp % BASE;
+        tmp = (unsigned long long)a->digit[i] * (unsigned long long)b + carry;
+        a->digit[i] = tmp;
         carry = tmp / BASE;
     }
 
@@ -430,6 +423,22 @@ int bn_mul_int(bn* a, int b){
 
     bn_normalize(a);
     return 0;
+}
+
+// Divide bignum A by integer D
+// and return the remainder
+int bn_div_int(bn* a, int D){
+    unsigned long long tmp;
+    int remainder = 0;
+
+    for(int i = a->size-1; i >= 0; i--){
+        tmp = BASE * remainder + a->digit[i];
+        a->digit[i] = tmp / D;
+        remainder = tmp % D;
+    }
+
+    bn_normalize(a);
+    return remainder;
 }
 
 int bn_pow_to(bn *a, int n){
@@ -493,52 +502,7 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
 }
 
 int bn_init_string(bn *t, const char *init_string){
-    if(BASE != 1000000000)
-        return bn_init_string_radix(t, init_string, 10);
-
-    int len = strlen(init_string), end = 0, sign = 1;
-
-    int n = len;
-    if(init_string[0] == '-'){
-        sign = -1;
-        end = 1;
-        n--;
-    }
-
-    int size = n/9 + (n%9 != 0);
-
-    t->sign = sign;
-    t->size = size;
-
-    int k = 0;
-    for(int i = len-1; i >= end; i -= 9){
-        int digit = 0, ten = 1;
-        for(int j = 0; j < 9 && i-j >= end; j++){
-            digit += ten * (init_string[i-j] - '0');
-            ten *= 10;
-        }
-
-        t->digit[k] = digit;
-        k++;
-    }
-    bn_normalize(t);
-    return 0;
-}
-
-// Divide integer A by in D
-// and return the remainder
-int bn_div_int(bn* a, int D){
-    long long tmp;
-    int remainder = 0;
-
-    for(int i = a->size-1; i >= 0; i--){
-        tmp = BASE * remainder + a->digit[i];
-        a->digit[i] = tmp / D;
-        remainder = tmp % D;
-    }
-
-    bn_normalize(a);
-    return remainder;
+    return bn_init_string_radix(t, init_string, 10);
 }
 
 const char *bn_to_string(bn const *t, int radix){
@@ -613,4 +577,11 @@ bn* bn_div(bn const *left, bn const *right){
 
 bn* bn_mod(bn const *left, bn const *right){
     return bn_new();
+}
+
+// print the bn A in base 10
+void bn_print(const bn* a){
+    const char* s = bn_to_string(a, 10);
+    printf("%s\n", s);
+    free((void*)s);
 }
