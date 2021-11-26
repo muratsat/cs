@@ -16,7 +16,7 @@ int bn_resize(bn* t, int new_size);
 // Copy from number SRC to number DEST
 int bn_copy(const bn* src, bn* dest);
 
-// change all digits to zero
+// Change all digits to zero
 int bn_zero(bn *t);
 
 // Compare absolute values of two numbers
@@ -35,6 +35,9 @@ int bn_mul_int(bn* a, int b);
 // Divide bignum A by integer D
 // and return the remainder
 int bn_div_int(bn* a, int D);
+
+// Print bignum A in base 10
+void bn_print(const bn* a);
 
 /*----------------------------------------------------------------------------------------------------*/
 
@@ -70,10 +73,6 @@ bn *bn_init(bn const *orig){
     bn_copy(orig, copy);
 
     return copy;
-}
-
-int bn_init_string(bn *t, const char *init_string){
-    return bn_init_string_radix(t, init_string, 10);
 }
 
 int bn_init_string_radix(bn *t, const char *init_string, int radix){
@@ -117,7 +116,12 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
     t->sign = sign;
 
     bn_delete(T);
+    bn_normalize(t);
     return 0;
+}
+
+int bn_init_string(bn *t, const char *init_string){
+    return bn_init_string_radix(t, init_string, 10);
 }
 
 const char *bn_to_string(bn const *t, int radix){
@@ -289,6 +293,12 @@ int bn_normalize(bn* a){
     return 0;
 }
 
+void bn_print(const bn* a){
+    const char* s = bn_to_string(a, 10);
+    printf("%s\n", s);
+    free((void*)s);
+}
+
 int bn_mul_int(bn* a, int b){
     int size_a = a->size, i;
     unsigned long long tmp, carry = 0;
@@ -391,13 +401,13 @@ int bn_add_to(bn *t, bn const *right){
     if(size1 < size2)
         bn_resize(a, size);
 
-    unsigned long long tmp, borrowed = 0, i;
+    long long tmp, borrowed = 0, i;
     for(i = 0; i < size; i++){
         tmp = -borrowed;
         if(i < size1)
-            tmp += cmp * (unsigned long long)a->digit[i];
+            tmp += cmp * (long long)a->digit[i];
         if(i < size2)
-            tmp -= cmp * (unsigned long long)b->digit[i];
+            tmp -= cmp * (long long)b->digit[i];
         borrowed = 0;
 
         if(tmp < 0){
@@ -412,7 +422,7 @@ int bn_add_to(bn *t, bn const *right){
 
     bn_normalize(a);
 
-    a->sign = cmp*a->sign;
+    a->sign = cmp * a->sign;
     return 0;
 }
 
@@ -422,6 +432,7 @@ int bn_sub_to(bn *t, bn const *right){
 
     if(a->sign == 0){
         bn_copy(b, a);
+        bn_neg(a);
         return 0;
     }
     if(b->sign == 0)
@@ -439,7 +450,7 @@ int bn_sub_to(bn *t, bn const *right){
             tmp = carry;
             tmp += i < size1? a->digit[i] : 0;
             tmp += i < size2? b->digit[i] : 0;
-            a->digit[i] = tmp%BASE;
+            a->digit[i] = tmp;
             carry = tmp/BASE;
         }
 
@@ -469,13 +480,13 @@ int bn_sub_to(bn *t, bn const *right){
     if(size1 < size2)
         bn_resize(a, size);
 
-    unsigned long long tmp, borrowed = 0, i;
+    long long tmp, borrowed = 0, i;
     for(i = 0; i < size; i++){
         tmp = -borrowed;
         if(i < size1)
-            tmp += cmp * (unsigned long long)a->digit[i];
+            tmp += cmp * (long long)a->digit[i];
         if(i < size2)
-            tmp -= cmp * (unsigned long long)b->digit[i];
+            tmp -= cmp * (long long)b->digit[i];
         borrowed = 0;
 
         if(tmp < 0){
@@ -494,13 +505,12 @@ int bn_sub_to(bn *t, bn const *right){
     return 0;
 }
 
+// TODO
 int bn_mul_to(bn *a, bn const *b){
-    bn* t = bn_mul(a, b);
-    bn_copy(t, a);
-    bn_delete(t);
     return 0;
 }
 
+// TODO
 int bn_div_to(bn *t, bn const *right){
     bn* a = t;
     bn const* b = right;
@@ -527,6 +537,7 @@ int bn_div_to(bn *t, bn const *right){
     return 0;
 }
 
+// TODO
 int bn_mod_to(bn *t, bn const *right){
     return 0;
 }
@@ -547,50 +558,21 @@ bn* bn_sub(bn const *left, bn const *right){
     return res;
 }
 
+// TODO
 bn* bn_mul(const bn *a, const bn *b){
-    int size_a = a->size, size_b = b->size;
-
-    bn *res = bn_new(); 
-    bn_resize(res, size_a + size_b);
-
-    bn* t = bn_new();
-    bn_resize(t, size_a + size_b);
-
-    for(int j = 0; j < size_b; j++){
-        memcpy(t->digit + j, a->digit, size_a * sizeof(unsigned int));
-        if(j > 0)
-            t->digit[j-1] = 0;
-
-        unsigned long long tmp, carry = 0;
-
-        for(int i = 0; i < size_a; i++){
-            tmp = (unsigned long long)b->digit[j] * (unsigned long long)a->digit[i];
-            tmp += carry;
-            t->digit[j + i] = tmp;
-            carry = tmp / BASE;
-        }
-
-        if(carry)
-            t->digit[j + size_a] = carry;
-
-        bn_add_to(res, t);
-    }
-
-    res->sign = a->sign * b->sign;
-
-    bn_normalize(res);
-    bn_delete(t);
-    return res;
 }
 
+// TODO
 bn* bn_div(bn const *left, bn const *right){
     return bn_new();
 }
 
+// TODO
 bn* bn_mod(bn const *left, bn const *right){
     return bn_new();
 }
 
+// TODO: test if this is correct
 int bn_pow_to(bn *a, int n){
     bn* t = bn_init(a);
     bn_init_int(a, 1);
@@ -607,6 +589,7 @@ int bn_pow_to(bn *a, int n){
     return 0;
 }
 
+//TODO
 int bn_root_to(bn *t, int reciprocal){
     return 0;
 }
