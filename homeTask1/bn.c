@@ -260,12 +260,30 @@ int bn_init_string(bn *t, const char *init_string){
     }
 
     for(int i = len-1; i >= end; i--){
-        bn* addend = bn_init(T);
         int digit = init_string[i] - '0';
-        bn_mul_int(addend, digit);
-        bn_add_abs(t, addend);
+
+        bn* a = t, *b = T;
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+
+        bn_resize(a, size);
+        unsigned long long tmp, carry = 0;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            if(i < size_a)
+                tmp += a->digit[i];
+            if(i < size_b)
+                tmp += (unsigned long long)b->digit[i] * digit;
+            
+            a->digit[i] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry){
+            bn_resize(a, size+1);
+            a->digit[size] = carry;
+        }
+
         bn_mul_int(T, 10);
-        bn_delete(addend);
     }
 
     t->sign = sign;
@@ -305,12 +323,30 @@ int bn_init_string_radix(bn *t, const char *init_string, int radix){
     }
 
     for(int i = len-1; i >= end; i--){
-        bn* addend = bn_init(T);
         int digit = DigitValue[(int)init_string[i]];
-        bn_mul_int(addend, digit);
-        bn_add_abs(t, addend);
+
+        bn* a = t, *b = T;
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+
+        bn_resize(a, size);
+        unsigned long long tmp, carry = 0;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            if(i < size_a)
+                tmp += a->digit[i];
+            if(i < size_b)
+                tmp += (unsigned long long)b->digit[i] * digit;
+            
+            a->digit[i] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry){
+            bn_resize(a, size+1);
+            a->digit[size] = carry;
+        }
+
         bn_mul_int(T, radix);
-        bn_delete(addend);
     }
 
     t->sign = sign;
