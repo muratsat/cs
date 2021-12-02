@@ -57,6 +57,9 @@ int bn_sub_abs(bn* a, bn const *b);
 // Set number to zero
 void bn_zero(bn* a);
 
+// Find the square of a number
+int bn_square(bn* a);
+
 void bn_debug(bn const* a){
     printf("\nsize: %d, sign: %d\n", a->size, a->sign);
     for(int i = a->size - 1; i >= 0; i--)
@@ -224,6 +227,34 @@ void bn_zero(bn* a){
     memset(a->digit, 0, a->allocd * sizeof(unsigned int));
     bn_resize(a, 1);
     a->sign = 0;
+}
+
+int bn_square(bn* a){
+    int size = a->size;
+    int sign = a->sign * a->sign;
+
+    unsigned int* arr = (unsigned int*)malloc(size*sizeof(unsigned int));
+    memcpy(arr, a->digit, size*sizeof(unsigned int));
+
+    bn_zero(a);
+    bn_resize(a, size * 2);
+
+    for(int i = 0; i < size; i++){
+        unsigned long long tmp, carry = 0;
+
+        for(int j = 0; j < size; j++){
+            tmp = carry + (unsigned long long)arr[i] * (unsigned long long)arr[j] + (unsigned long long)a->digit[i+j];
+            a->digit[i+j] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry)
+            a->digit[i + size] = carry;
+    }
+
+    a->sign = sign;
+    bn_normalize(a);
+    free(arr);
+    return 0;
 }
 
 /*******************************************************************************************************************************************/
@@ -487,7 +518,31 @@ int bn_sub_to(bn *a, bn const *b){
     return 0;
 }
 
-int bn_mul_to(bn *t, bn const *right){
+int bn_mul_to(bn *a, bn const *b){
+    int size_a = a->size, size_b = b->size;
+    int sign = a->sign * b->sign;
+
+    unsigned int* arr = (unsigned int*)malloc(size_a * sizeof(unsigned int));
+    memcpy(arr, a->digit, size_a*sizeof(unsigned int));
+
+    bn_zero(a);
+    bn_resize(a, size_a + size_b);
+
+    for(int i = 0; i < size_b; i++){
+        unsigned long long tmp, carry = 0;
+
+        for(int j = 0; j < size_a; j++){
+            tmp = carry + (unsigned long long)b->digit[i] * (unsigned long long)arr[j] + (unsigned long long)a->digit[i+j];
+            a->digit[i+j] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry)
+            a->digit[i + size_a] = carry;
+    }
+
+    a->sign = sign;
+    bn_normalize(a);
+    free(arr);
     return 0;
 }
 
@@ -500,7 +555,19 @@ int bn_mod_to(bn *t, bn const *right){
 }
 
 
-int bn_pow_to(bn *t, int degree){
+int bn_pow_to(bn *a, int n){
+    bn* t = bn_init(a);
+    bn_init_int(a, 1);
+
+    while(n > 0){
+        if(n%2 == 1)
+            bn_mul_to(a, t);
+
+        bn_square(t);
+        n /= 2;
+    }
+
+    bn_delete(t);
     return 0;
 }
 
@@ -523,7 +590,8 @@ bn* bn_sub(bn const *left, bn const *right){
 }
 
 bn* bn_mul(bn const *left, bn const *right){
-    bn* res = bn_new();
+    bn* res = bn_init(left);
+    bn_mul_to(res, right);
     return res;
 }
 
