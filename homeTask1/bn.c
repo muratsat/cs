@@ -57,7 +57,7 @@ int bn_sub_abs(bn* a, bn const *b);
 // Set number to zero
 void bn_zero(bn* a);
 
-void bn_debug(bn* a){
+void bn_debug(bn const* a){
     printf("\nsize: %d, sign: %d\n", a->size, a->sign);
     for(int i = a->size - 1; i >= 0; i--)
         printf("%u ", a->digit[i]);
@@ -69,6 +69,8 @@ void bn_debug(bn* a){
 
 int bn_resize(bn* a, int new_size){
     if(a->allocd < new_size){
+        if(new_size < 2*a->allocd) 
+            new_size = 2*a->allocd;
         a->digit = (unsigned int*)realloc(a->digit, new_size * sizeof(unsigned int));
         a->allocd = new_size;
     }
@@ -377,12 +379,53 @@ int bn_delete(bn *t){
 }
 
 int bn_add_to(bn *a, bn const *b){
-    if(a->sign == b->sign)
-        bn_add_abs(a, b);
+    if(a->sign == b->sign){
+        //bn_add_abs(a, b);
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+        bn_resize(a, size);
+        
+        unsigned long long tmp, carry = 0;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            if(i < size_a)
+                tmp += a->digit[i];
+            if(i < size_b)
+                tmp += b->digit[i];
+            
+            a->digit[i] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry){
+            bn_resize(a, size+1);
+            a->digit[size] = carry;
+        }
+        bn_normalize(a);
+    }
 
     else{
         int cmp = bn_cmp_abs(a, b);
-        bn_sub_abs(a, b);
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+        bn_resize(a, size);
+
+        long long tmp, borrowed = 0;
+        for(int i = 0; i < size; i++){
+            tmp = -borrowed;
+            if(i < size_a)
+                tmp += cmp * (long long)a->digit[i];
+            if(i < size_b)
+                tmp -= cmp * (long long)b->digit[i];
+            
+            borrowed = 0;
+            if(tmp < 0){
+                borrowed = 1;
+                tmp += BASE;
+            }
+
+            a->digit[i] = tmp;
+        }
+        bn_normalize(a);
         a->sign = cmp < 0? b->sign : a->sign;
     }
 
@@ -391,14 +434,53 @@ int bn_add_to(bn *a, bn const *b){
 
 int bn_sub_to(bn *a, bn const *b){
     if(a->sign != b->sign){
-        bn_add_abs(a, b);
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+        bn_resize(a, size);
+        
+        unsigned long long tmp, carry = 0;
+        for(int i = 0; i < size; i++){
+            tmp = carry;
+            if(i < size_a)
+                tmp += a->digit[i];
+            if(i < size_b)
+                tmp += b->digit[i];
+            
+            a->digit[i] = tmp;
+            carry = tmp / BASE;
+        }
+        if(carry){
+            bn_resize(a, size+1);
+            a->digit[size] = carry;
+        }
+        bn_normalize(a);
         if(a->sign == 0)
             a->sign = -b->sign;
     }
 
     else{
         int cmp = bn_cmp_abs(a, b);
-        bn_sub_abs(a, b);
+        int size_a = a->size, size_b = b->size;
+        int size = size_a > size_b ? size_a : size_b;
+        bn_resize(a, size);
+
+        long long tmp, borrowed = 0;
+        for(int i = 0; i < size; i++){
+            tmp = -borrowed;
+            if(i < size_a)
+                tmp += cmp * (long long)a->digit[i];
+            if(i < size_b)
+                tmp -= cmp * (long long)b->digit[i];
+            
+            borrowed = 0;
+            if(tmp < 0){
+                borrowed = 1;
+                tmp += BASE;
+            }
+
+            a->digit[i] = tmp;
+        }
+        bn_normalize(a);
         a->sign = a->sign * cmp;
     }
 
