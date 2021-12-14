@@ -37,11 +37,11 @@ int bn_copy(bn const *src, bn *dest);
 int bn_normalize(bn* a);
 
 // Multiply bignum A by int B
-int bn_mul_int(bn* a, int b);
+int bn_mul_int(bn* a, long long b);
 
 // Dibide bignum A by int B
 // and return the remainder
-int bn_div_int(bn* a, int b);
+int bn_div_int(bn* a, unsigned int b);
 
 // Compare absolute values of A and B
 int bn_cmp_abs(bn const *a, bn const *b);
@@ -59,6 +59,9 @@ void bn_zero(bn* a);
 
 // Find the square of a number
 int bn_square(bn* a);
+
+// Print number
+int bn_print(bn* a, int endl);
 
 void bn_debug(bn const* a){
     printf("\nsize: %d, sign: %d\n", a->size, a->sign);
@@ -105,7 +108,7 @@ int bn_normalize(bn* a){
     return 0;
 }
 
-int bn_mul_int(bn* a, int b){
+int bn_mul_int(bn* a, long long b){
     if(b < 0){
         a->sign *= -1;
         b = -b;
@@ -116,7 +119,7 @@ int bn_mul_int(bn* a, int b){
 
     for(int i = 0; i < size_a; i++){
         tmp = carry + (unsigned long long)a->digit[i] * b;
-        a->digit[i] = tmp;
+        a->digit[i] = tmp % BASE;
         carry = tmp / BASE;
     }
 
@@ -129,7 +132,7 @@ int bn_mul_int(bn* a, int b){
     return 0;
 }
 
-int bn_div_int(bn* a, int b){
+int bn_div_int(bn* a, unsigned int b){
     if(b == 0)
         return 3;
     
@@ -254,6 +257,15 @@ int bn_square(bn* a){
     a->sign = sign;
     bn_normalize(a);
     free(arr);
+    return 0;
+}
+
+int bn_print(bn* a, int endl){
+    const char* s = bn_to_string(a, 10);
+    printf("%s ", s);
+    free((void*)s);
+    if(endl)
+        printf("\n");
     return 0;
 }
 
@@ -546,11 +558,11 @@ int bn_mul_to(bn *a, bn const *b){
     return 0;
 }
 
-int bn_div_to(bn *t, bn const *right){
+int bn_div_to(bn *divident, bn const *divisor){
     return 0;
 }
 
-int bn_mod_to(bn *t, bn const *right){
+int bn_mod_to(bn *divident, bn const *divisor){
     return 0;
 }
 
@@ -596,12 +608,14 @@ bn* bn_mul(bn const *left, bn const *right){
 }
 
 bn* bn_div(bn const *left, bn const *right){
-    bn* res = bn_new();
+    bn* res = bn_init(left);
+    bn_div_to(res, right);
     return res;
 }
 
 bn* bn_mod(bn const *left, bn const *right){
-    bn* res = bn_new();
+    bn* res = bn_init(left);
+    bn_mod_to(res, right);
     return res;
 }
 
