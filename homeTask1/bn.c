@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "bn.h"
+//#include "bn.h"
 
 #define BASE 4294967296 // 2^32
 
@@ -489,7 +489,7 @@ int bn_sub_to(bn *a, bn const *b){
             if(i < size_b)
                 tmp += b->digit[i];
             
-            a->digit[i] = tmp;
+            a->digit[i] = tmp % BASE;
             carry = tmp / BASE;
         }
         if(carry){
@@ -521,7 +521,7 @@ int bn_sub_to(bn *a, bn const *b){
                 tmp += BASE;
             }
 
-            a->digit[i] = tmp;
+            a->digit[i] = tmp % BASE;
         }
         bn_normalize(a);
         a->sign = a->sign * cmp;
@@ -558,11 +558,132 @@ int bn_mul_to(bn *a, bn const *b){
     return 0;
 }
 
+unsigned int bn_div_bin(bn* a, bn* b){
+    long long int l = 0, r = BASE - 1, m;
+
+    bn* tmp = bn_new();
+    while(l <= r){
+        m = (r + l) / 2;
+        bn_copy(b, tmp);
+        bn_mul_int(tmp, m);
+        int cmp = bn_cmp_abs(tmp, a);
+
+        if(cmp < 0)
+            l = m + 1;
+        else if(cmp > 0)
+            r = m - 1;
+        else break;
+    }
+    m = (r + l) >> 1;
+
+    bn_delete(tmp);
+    return m;
+}
+
 int bn_div_to(bn *divident, bn const *divisor){
+    bn* N = bn_init(divident); bn_abs(N);
+    bn* D = bn_init(divisor);  bn_abs(D);
+
+    int sign = divident->sign * divisor->sign;
+
+    if(bn_cmp_abs(N, D) < 0){
+        bn_zero(divident);
+    }
+
+    else{
+        // size of divisor
+        int div_size = divisor->size;
+        int size_N = N->size, size_d = D->size;
+        int size_q = size_N - size_d + 1;
+        bn_resize(divident, size_q);
+
+        bn* estimate = bn_new();
+
+        for(int i = size_q-1; i >= 0; i--){
+            bn_resize(D, i + div_size);
+            memcpy(D->digit + i, divisor->digit, div_size*sizeof(unsigned int));
+            if(i > 0)
+                memset(D->digit, 0, i*sizeof(unsigned int));
+            
+
+            bn_copy(D, estimate);
+            unsigned int digit = bn_div_bin(N, D);
+            bn_mul_int(estimate, digit);
+
+            bn_sub_to(N, estimate);
+            divident->digit[i] = digit;
+        }
+
+        bn_delete(estimate);
+    }
+
+    divident->sign = sign;
+    if(sign < 0 && N->sign != 0){
+        bn* one = bn_new();
+        bn_init_int(one, 1);
+        bn_sub_to(divident, one);
+        bn_delete(one);
+    }
+
+    bn_delete(N);
+    bn_delete(D);
     return 0;
 }
 
 int bn_mod_to(bn *divident, bn const *divisor){
+    bn* N = bn_init(divident); bn_abs(N);
+    bn* D = bn_init(divisor);  bn_abs(D);
+    bn* Q = bn_new();
+
+    int sign = divident->sign * divisor->sign;
+
+    if(bn_cmp_abs(N, D) < 0){
+        bn_zero(Q);
+    }
+
+    else{
+        // size of divisor
+        int div_size = divisor->size;
+        int size_N = N->size, size_d = D->size;
+        int size_q = size_N - size_d + 1;
+        bn_resize(Q, size_q); Q->sign = 1;
+
+        bn* estimate = bn_new();
+
+        for(int i = size_q-1; i >= 0; i--){
+
+            bn_resize(D, i + div_size);
+            memcpy(D->digit + i, divisor->digit, div_size*sizeof(unsigned int));
+            if(i > 0)
+                memset(D->digit, 0, i*sizeof(unsigned int));
+
+            bn_copy(D, estimate);
+            unsigned int digit = bn_div_bin(N, D);
+            bn_mul_int(estimate, digit);
+
+            bn_sub_to(N, estimate);
+            Q->digit[i] = digit;
+        }
+
+        bn_delete(estimate);
+    }
+
+    if(sign < 0){
+        Q->sign = sign;
+        bn* one = bn_new();
+        bn_init_int(one, 1);
+        bn_sub_to(Q, one);
+        bn_delete(one);
+    }
+    bn_mul_to(Q, divisor);
+    bn_sub_to(divident, Q);
+
+    if(bn_cmp_abs(divident, divisor) == 0)
+        bn_zero(divident);
+
+    bn_delete(N);
+    bn_delete(D);
+    bn_delete(Q);
     return 0;
 }
 
