@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-//#include "bn.h"
+#include "bn.h"
 
 #define BASE 4294967296 // 2^32
 
@@ -61,25 +61,24 @@ void bn_zero(bn* a);
 int bn_square(bn* a);
 
 // Print number
-int bn_print(bn* a, int endl);
+int bn_print(bn* a, int radix, int endl);
 
-void bn_debug(bn const* a){
-    printf("\nsize: %d, sign: %d\n", a->size, a->sign);
-    for(int i = a->size - 1; i >= 0; i--)
-        printf("%u ", a->digit[i]);
-    
-    printf("\n");
-}
+// print all digits in base 2^32
+void bn_debug(bn const* a);
 
 /*******************************************************************************************************************************************/
 
 int bn_resize(bn* a, int new_size){
+    int old_size = a->size;
+
     if(a->allocd < new_size){
-        if(new_size < 2*a->allocd) 
-            new_size = 2*a->allocd;
+        //if(new_size < 2*a->allocd) 
+        //    new_size = 2*a->allocd;
         a->digit = (unsigned int*)realloc(a->digit, new_size * sizeof(unsigned int));
         a->allocd = new_size;
     }
+    if(old_size < new_size)
+        memset(a->digit + old_size, 0, (new_size-old_size)*sizeof(unsigned int));
 
     a->size = new_size; 
     return 0;
@@ -260,13 +259,21 @@ int bn_square(bn* a){
     return 0;
 }
 
-int bn_print(bn* a, int endl){
-    const char* s = bn_to_string(a, 10);
+int bn_print(bn* a, int radix, int endl){
+    const char* s = bn_to_string(a, radix);
     printf("%s ", s);
     free((void*)s);
     if(endl)
         printf("\n");
     return 0;
+}
+
+void bn_debug(bn const* a){
+    printf("\nsize: %d, sign: %d\n", a->size, a->sign);
+    for(int i = a->size - 1; i >= 0; i--)
+        printf("%u ", a->digit[i]);
+    
+    printf("\n");
 }
 
 /*******************************************************************************************************************************************/
@@ -275,7 +282,7 @@ int bn_print(bn* a, int endl){
 bn *bn_new(){
     bn* a = (bn*)malloc(sizeof(bn));
 
-    int default_size = 2048;
+    int default_size = 100;
 
     a->digit = (unsigned int*)calloc(default_size, sizeof(unsigned int));
     a->allocd = default_size;
@@ -423,7 +430,6 @@ int bn_delete(bn *t){
 
 int bn_add_to(bn *a, bn const *b){
     if(a->sign == b->sign){
-        //bn_add_abs(a, b);
         int size_a = a->size, size_b = b->size;
         int size = size_a > size_b ? size_a : size_b;
         bn_resize(a, size);
@@ -616,6 +622,7 @@ int bn_div_to(bn *divident, bn const *divisor){
 
         bn_delete(estimate);
     }
+    bn_normalize(divident);
 
     divident->sign = sign;
     if(sign < 0 && N->sign != 0){
@@ -631,58 +638,12 @@ int bn_div_to(bn *divident, bn const *divisor){
 }
 
 int bn_mod_to(bn *divident, bn const *divisor){
-    bn* N = bn_init(divident); bn_abs(N);
-    bn* D = bn_init(divisor);  bn_abs(D);
-    bn* Q = bn_new();
-
-    int sign = divident->sign * divisor->sign;
-
-    if(bn_cmp_abs(N, D) < 0){
-        bn_zero(Q);
-    }
-
-    else{
-        // size of divisor
-        int div_size = divisor->size;
-        int size_N = N->size, size_d = D->size;
-        int size_q = size_N - size_d + 1;
-        bn_resize(Q, size_q); Q->sign = 1;
-
-        bn* estimate = bn_new();
-
-        for(int i = size_q-1; i >= 0; i--){
-
-            bn_resize(D, i + div_size);
-            memcpy(D->digit + i, divisor->digit, div_size*sizeof(unsigned int));
-            if(i > 0)
-                memset(D->digit, 0, i*sizeof(unsigned int));
-
-            bn_copy(D, estimate);
-            unsigned int digit = bn_div_bin(N, D);
-            bn_mul_int(estimate, digit);
-
-            bn_sub_to(N, estimate);
-            Q->digit[i] = digit;
-        }
-
-        bn_delete(estimate);
-    }
-
-    if(sign < 0){
-        Q->sign = sign;
-        bn* one = bn_new();
-        bn_init_int(one, 1);
-        bn_sub_to(Q, one);
-        bn_delete(one);
-    }
+    bn* Q = bn_init(divident);
+    bn_div_to(Q, divisor);
     bn_mul_to(Q, divisor);
+
     bn_sub_to(divident, Q);
 
-    if(bn_cmp_abs(divident, divisor) == 0)
-        bn_zero(divident);
-
-    bn_delete(N);
-    bn_delete(D);
     bn_delete(Q);
     return 0;
 }
