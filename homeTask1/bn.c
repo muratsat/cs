@@ -665,8 +665,194 @@ int bn_pow_to(bn *a, int n){
     return 0;
 }
 
+int bn_init_ll(bn* a, long long x){
+    bn_resize(a, 1);
+    a->digit[0] = x % BASE;
+    if(x / BASE > 0){
+        bn_resize(a, 2);
+        a->digit[1] = x / BASE;
+    }
+
+    if(x < 0)
+        a->sign = -1;
+    else if(x > 0)
+        a->sign = 1;
+    else 
+        a->sign = 0;
+
+    return 0;
+}
+
+int bn_sqrt(bn* a){
+    int size_a = a->size;
+
+    // Intermediate divident
+    bn* divident = bn_new(); divident->sign = 1;
+    bn_resize(divident, 2 - size_a%2);
+
+    if(size_a%2 == 1)
+        divident->digit[0] = a->digit[size_a - 1];
+    else{
+        divident->digit[0] = a->digit[size_a - 2];
+        divident->digit[1] = a->digit[size_a - 1];
+    }
+
+    //the middle number for binary search
+    bn* m = bn_new(); m->sign = 1;
+
+    long long l = 1, r = BASE - 1, mid = BASE/2;
+    while(l <= r){
+        mid = (l + r)/2;
+        bn_init_ll(m, mid);
+        bn_square(m);
+
+        int cmp = bn_cmp_abs(m, divident);
+        if(cmp > 0)
+            r = mid - 1;
+        else if(cmp < 0)
+            l = mid + 1;
+        else 
+            break;
+    }
+
+    unsigned int first_digit = (l+r)/2;
+    bn_init_ll(m, first_digit);
+    bn_square(m);
+    bn_sub_to(divident, m);
+
+    // intermediate divisor
+    bn* divisor = bn_new(); divisor->sign = 1;
+
+    // the result number where we 
+    // write all calculated digits
+    bn* res = bn_new(); res->sign = 1;
+    int size = (size_a - 2 + size_a%2)/2 + 1;
+    bn_resize(res, size);
+    res->digit[size-1] = first_digit;
+
+    // index of current digit of result
+    // id = size - 2
+    //
+    // (subtract 2 because we already 
+    // know the first digit)
+    int id = size - 2;
+
+    for(int i = size_a + size_a%2 - 3; i >= 0; i -= 2){
+        int dvdnt_size = divident->size;
+        bn_resize(divident, dvdnt_size + 2);
+        memcpy(divident->digit + 2, divident->digit, dvdnt_size * sizeof(unsigned int));
+        divident->digit[1] = a->digit[i];
+        divident->digit[0] = a->digit[i-1];
+
+
+        int div_size = size - id - 1;
+        bn_resize(divisor, div_size);
+        memcpy(divisor->digit, res->digit + (id+1), div_size*sizeof(unsigned int));
+        bn_mul_int(divisor, 2); div_size = divisor->size;
+
+        l = 1; r = BASE-1;
+        while(l <= r){
+            mid = (r + l)/2;
+
+            bn_resize(m, div_size + 1);
+            memcpy(m->digit+1, divisor->digit, div_size*sizeof(unsigned int));
+            m->digit[0] = mid;
+            bn_mul_int(m, mid);
+
+            int cmp = bn_cmp_abs(m, divident);
+            if(cmp < 0)
+                l = mid + 1;
+            else if(cmp > 0)
+                r = mid - 1;
+            else 
+                break;
+        }
+        mid = (r + l)/2;
+        bn_resize(m, div_size + 1);
+        memcpy(m->digit+1, divisor->digit, div_size*sizeof(unsigned int));
+        m->digit[0] = mid;
+        bn_mul_int(m, mid);
+
+        bn_sub_to(divident, m);
+
+        res->digit[id] = mid;
+        id--;
+    }
+
+    bn_normalize(res);
+    bn_copy(res, a);
+
+    bn_delete(divident);
+    bn_delete(divisor);
+    bn_delete(res);
+    bn_delete(m);
+    return 0;
+}
+
+int bn_diff(bn const *a, bn const* b){
+    int size_a = a->size, size_b = b->size;
+    if(size_a != size_b)
+        return 0;
+    
+    for(int i = size_a-1; i > 0; i--){
+        if(a->digit[i] != b->digit[i])
+            return 0;
+    }
+
+    if(abs(a->digit[0] - b->digit[0]) <= 1)
+        return 1;
+    
+    return 0;
+}
 
 int bn_root_to(bn *t, int reciprocal){
+    if(reciprocal == 2)
+       return bn_sqrt(t);
+
+    bn* l = bn_new(); bn_init_int(l, 1);
+    bn* r = bn_init(t);
+    bn* mid = bn_new();
+    bn* tmp = bn_new();
+
+    int diff = bn_diff(l, r);
+
+
+    while(diff == 0){
+        /* mid = (r + l)/2 */
+        bn_copy(r, mid);   // mid = r
+        bn_add_to(mid, l); // mid += l
+        bn_div_int(mid, 2);// mid /= 2
+
+        // tmp = mid^reciprocal
+        bn_copy(mid, tmp);
+        bn_pow_to(tmp, reciprocal);
+
+        int cmp = bn_cmp(tmp, t);
+
+        if(cmp == 0)
+            break;
+        else if(cmp > 0)
+            bn_copy(mid, r);
+        else
+            bn_copy(mid, l);
+        
+        diff = bn_diff(l, r);
+    }
+
+    int cmp = bn_cmp(tmp, t);
+    if(cmp > 0){
+        bn* one = bn_new();
+        bn_init_int(one, 1);
+        bn_sub_to(mid, one);
+        bn_delete(one);
+    }
+
+    bn_copy(mid, t);
+
+    bn_delete(l);
+    bn_delete(r);
+    bn_delete(mid);
+    bn_delete(tmp);
     return 0;
 }
 
