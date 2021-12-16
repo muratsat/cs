@@ -25,47 +25,6 @@ struct bn_s{
 };
 typedef struct bn_s bn;
 
-/* Headers for helper functions */
-
-// Assign new size to bignum A
-int bn_resize(bn* a, int new_size);
-
-// Copy a bignum from SRC to DEST
-int bn_copy(bn const *src, bn *dest);
-
-// Remove trailing zeros
-int bn_normalize(bn* a);
-
-// Multiply bignum A by int B
-int bn_mul_int(bn* a, long long b);
-
-// Dibide bignum A by int B
-// and return the remainder
-int bn_div_int(bn* a, unsigned int b);
-
-// Compare absolute values of A and B
-int bn_cmp_abs(bn const *a, bn const *b);
-
-// add absolute values 
-// |a| = |a| + |b|
-int bn_add_abs(bn* a, bn const *b);
-
-// subtract absolute values
-// |a| = |a| - |b|
-int bn_sub_abs(bn* a, bn const *b);
-
-// Set number to zero
-void bn_zero(bn* a);
-
-// Find the square of a number
-int bn_square(bn* a);
-
-// Print number
-int bn_print(bn* a, int radix, int endl);
-
-// print all digits in base 2^32
-void bn_debug(bn const* a);
-
 /*******************************************************************************************************************************************/
 
 int bn_resize(bn* a, int new_size){
