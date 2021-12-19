@@ -4,7 +4,7 @@
 int main(){
     // a = 1337
     bn* a = bn_new();
-    bn_init_string(a, 1337);
+    bn_init_string(a, "1337");
 
     // b = 0b101
     bn* b = bn_new();
