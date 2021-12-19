@@ -6,21 +6,20 @@
 #define BASE 4294967296 // 2^32
 
 struct bn_s{
-    // Array of digits in base 2^32
+    // массив цифр числа
     unsigned int *digit;
 
-    // Number of digits allocated 
-    // in digits array
+    // Количество выделенной памяти
+    // для цифр числа
     int allocd;
 
-    // Number of actual digits 
-    // in base 2^32
+    // Количество цифр числа
     int size;
 
-    // Sign of the number:
-    // 1 if positive
-    // 0 if zero
-    // -1 if negative
+    // Знак числа
+    // 1, если положительное
+    // 0, если число равно нулю 
+    // -1, если отрицательно
     int sign;
 };
 typedef struct bn_s bn;
