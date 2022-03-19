@@ -128,3 +128,60 @@ compiler::compiler(){
 
 compiler::~compiler(){
 }
+
+int compiler::opcode(string word){
+    if(code.find(word) != code.end())
+        return code[word];
+    
+    return -1;
+}
+
+int compiler::optype(string word){
+    if(codeType.find(word) != codeType.end())
+        return codeType[word];
+    
+    return -1;
+}
+
+vector<string> compiler::readfile(const char* filename){
+    FILE* f = freopen(filename, "r", stdin);
+
+    vector<string> lines;
+
+    string s;
+    while(getline(cin, s))
+        lines.push_back(s);
+
+    fclose(f);
+    return lines;
+}
+
+vector<string> compiler::split_words(string line){
+    int n = line.size();
+
+    string word;
+    vector<string> words;
+
+    for(int i = 0; i < n; i++) {
+        char t = line[i];
+        if(t == ';')
+            break;
+
+        else if(t == ',')
+            continue;
+        
+        else if(t == ' ') {
+            if(word.size() > 0)
+                words.push_back(word);
+            word = "";
+        }
+
+        else 
+            word += t;
+    }
+
+    if(word.size() > 0)
+        words.push_back(word);
+    
+    return words;
+}

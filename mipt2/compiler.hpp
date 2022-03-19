@@ -77,10 +77,6 @@ class compiler{
     // table of register name and their number
     map<string, int> registerInt;
 
-    public:
-    compiler();
-    ~compiler();
-    
     // read and return vector of lines
     // from FILENAME
     vector<string> readfile(const char* filename);
@@ -96,4 +92,8 @@ class compiler{
     // operation type(RM, RR, RI, J)
     // returns -1 if doesn't exist
     int optype(string word);
+
+    public:
+    compiler();
+    ~compiler();
 };
