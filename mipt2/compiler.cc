@@ -1,6 +1,6 @@
 #include "compiler.hpp"
 
-compiler::compiler(){
+cpu::cpu(){
 
     code["halt"]    =    HALT;
     code["syscall"] = SYSCALL;
@@ -126,24 +126,24 @@ compiler::compiler(){
     registerInt["r15"] = 15;
 }
 
-compiler::~compiler(){
+cpu::~cpu(){
 }
 
-int compiler::opcode(string word){
+int cpu::opcode(string word){
     if(code.find(word) != code.end())
         return code[word];
     
     return -1;
 }
 
-int compiler::optype(string word){
+int cpu::optype(string word){
     if(codeType.find(word) != codeType.end())
         return codeType[word];
     
     return -1;
 }
 
-vector<string> compiler::readfile(const char* filename){
+vector<string> cpu::readfile(const char* filename){
     FILE* f = freopen(filename, "r", stdin);
 
     vector<string> lines;
@@ -156,7 +156,7 @@ vector<string> compiler::readfile(const char* filename){
     return lines;
 }
 
-vector<string> compiler::split_words(string line){
+vector<string> cpu::split_words(string line){
     int n = line.size();
 
     string word;
@@ -184,4 +184,41 @@ vector<string> compiler::split_words(string line){
         words.push_back(word);
     
     return words;
+}
+
+void cpu::assemble(const char* filename){
+    vector<string> lines = readfile(filename);
+    vector<vector<string>> words;
+    for(auto line: lines)
+        words.push_back(split_words(line));
+    
+    unsigned pc = 0;
+    map<string, unsigned> label;
+
+    for(int i = 0; i < words.size(); i++){
+        for(int j = 0; j < words[i].size(); j++){
+            string word = words[i][j];
+            if(word.back() == ':'){
+                word.pop_back();
+                label[word] = pc;
+                words[i].erase(words[i].begin() + j);
+                j--;
+            }
+        }
+
+        if(!words[i].empty()){
+            string word = words[i][0];
+            if(word == "end"){
+                regs[15] = label[words[i][1]];
+                break;
+            }
+            else if(word == "word")
+                mem[pc] = stoi(words[i][1]);
+            else if(word == "double"){
+                double t = stod(words[i][1]);
+                mem[pc] = *(int*)(&t);
+            }
+            pc++;
+        }
+    }
 }

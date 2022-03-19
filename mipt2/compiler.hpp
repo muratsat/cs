@@ -66,7 +66,7 @@ enum code {
     STORER2 = 71
 };
 
-class compiler{
+class cpu{
 
     // table of codes and their numbers
     map<string, int> code;
@@ -93,7 +93,15 @@ class compiler{
     // returns -1 if doesn't exist
     int optype(string word);
 
+    // registers
+    int regs[16];
+
+    // memory
+    int mem[1024*1024];
+
     public:
-    compiler();
-    ~compiler();
+    cpu();
+    ~cpu();
+
+    void assemble(const char* filename);
 };
