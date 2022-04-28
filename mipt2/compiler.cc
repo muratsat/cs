@@ -1,4 +1,5 @@
 #include "compiler.hpp"
+using namespace std;
 
 cpu::cpu(){
 
@@ -129,14 +130,14 @@ cpu::cpu(){
 cpu::~cpu(){
 }
 
-int cpu::opcode(string word){
+int cpu::opCode(string word){
     if(code.find(word) != code.end())
         return code[word];
     
     return -1;
 }
 
-int cpu::optype(string word){
+int cpu::opType(string word){
     if(codeType.find(word) != codeType.end())
         return codeType[word];
     
@@ -188,35 +189,89 @@ vector<string> cpu::split_words(string line){
 
 void cpu::assemble(const char* filename){
     vector<string> lines = readfile(filename);
-    vector<vector<string>> words;
-    for(auto line: lines)
-        words.push_back(split_words(line));
-    
-    unsigned pc = 0;
-    map<string, unsigned> label;
 
-    for(int i = 0; i < words.size(); i++){
-        for(int j = 0; j < words[i].size(); j++){
-            string word = words[i][j];
-            if(word.back() == ':'){
+    vector<vector<string>> linesWords;
+
+    map<string, int> labelValue;
+    int pc = 0;
+    for(auto line : lines){
+        auto words = split_words(line);
+        for(auto it = words.begin(); it != words.end(); it++){
+            string word = *it;
+            if (word.back() == ':'){
+                words.erase(it);
+                it--;
                 word.pop_back();
-                label[word] = pc;
-                words[i].erase(words[i].begin() + j);
-                j--;
+                labelValue[word] = pc;
             }
         }
+        if(!words.empty()){
+            pc++;
+            linesWords.push_back(words);
+        }
+    }
 
-        if(!words[i].empty()){
-            string word = words[i][0];
-            if(word == "end"){
-                regs[15] = label[words[i][1]];
+    pc = 0;
+    for (auto words : linesWords) {
+        for(auto it = words.begin(); it != words.end(); it++){
+            string word = *it;
+            if(labelValue.find(word) != labelValue.end())
+                *it = to_string(labelValue[word]);
+        }
+
+        if(words.empty())
+            continue;
+
+        if (words[0] == "end") {
+            regs[15] = labelValue[words[1]];
+            break;
+        }
+        else if (words[0] == "word") {
+            mem[pc] = stoi(words[1]);
+            pc++;
+        }
+        else if (words[0] == "double") {
+            // TODO: check if casting works properly
+            // double dblWord = stod(words[1]);
+            // mem[pc] = *(int*)(&dblWord);
+            pc++;
+        }
+
+        else{
+            
+            unsigned command = 0;
+            int cmd = opCode(words[0]);
+            int r1, r2;
+            unsigned addr;
+            int mod, imm;
+            cout << cmd << ' ';
+            switch (opType(words[0]))
+            {
+
+            // TODO: finish decomposing 
+            // into binary format
+            case RM:
+                // r1 = registerInt[words[1]];
+                // addr = stoul(words[2]);
                 break;
-            }
-            else if(word == "word")
-                mem[pc] = stoi(words[i][1]);
-            else if(word == "double"){
-                double t = stod(words[i][1]);
-                mem[pc] = *(int*)(&t);
+
+            case RR:
+                // r1 = registerInt[words[1]];
+                // r2 = registerInt[words[2]];
+                // mod = stoi(words[3]);
+                break;
+
+            case RI:
+                // r1 = registerInt[words[1]];
+                // imm = stoi(words[2]);
+                break;
+
+            case J:
+                // addr = stoi(words[1]);
+                break;
+
+            default:
+                break;
             }
             pc++;
         }

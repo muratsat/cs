@@ -87,11 +87,11 @@ class cpu{
 
     // operation code
     // returns -1 if doesn't exist
-    int opcode(string word);
+    int opCode(string word);
 
     // operation type(RM, RR, RI, J)
     // returns -1 if doesn't exist
-    int optype(string word);
+    int opType(string word);
 
     // registers
     int regs[16];
@@ -103,5 +103,7 @@ class cpu{
     cpu();
     ~cpu();
 
+    // read file and assemble
+    // it to binary
     void assemble(const char* filename);
 };
