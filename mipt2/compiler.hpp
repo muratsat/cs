@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#pragma once
 
 using namespace std;
 
@@ -8,7 +9,7 @@ enum type{
     RM,
     RR,
     RI,
-    J
+    J,
 };
 
 enum code {
@@ -71,6 +72,9 @@ class cpu{
     // table of codes and their numbers
     map<string, int> code;
 
+    // table of numbers and their code words
+    map<int, string> code_word;
+
     // table of code and their types
     map<string, int> codeType;
 
@@ -93,11 +97,25 @@ class cpu{
     // returns -1 if doesn't exist
     int opType(string word);
 
+    // return register number
+    // or -1 if word is not register
+    int isRegister(string word);
+
+    void error(int line);
+
+
+    void execRM(int cmd, int r1, unsigned addr);
+    void execRR(int cmd, int r1, int r2, int mod);
+    void execRI(int cmd, int r1, int imm);
+    void execJ(int cmd, unsigned addr);
+
     // registers
     int regs[16];
 
     // memory
     int mem[1024*1024];
+
+    int flags;
 
     public:
     cpu();
@@ -106,4 +124,10 @@ class cpu{
     // read file and assemble
     // it to binary
     void assemble(const char* filename);
+
+    // load binary file
+    void load(const char* filename);
+
+    // assemble code  or load binary to run
+    void run(const char* filename);
 };

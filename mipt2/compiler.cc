@@ -125,6 +125,10 @@ cpu::cpu(){
     registerInt["r13"] = 13;
     registerInt["r14"] = 14;
     registerInt["r15"] = 15;
+
+    for(auto p : code){
+        code_word[p.second] = p.first;
+    }
 }
 
 cpu::~cpu(){
@@ -142,6 +146,19 @@ int cpu::opType(string word){
         return codeType[word];
     
     return -1;
+}
+
+
+int cpu::isRegister(string word) {
+    if(registerInt.find(word) != registerInt.end())
+        return registerInt[word];
+    
+    return -1;
+}
+
+void cpu::error(int line) {
+    cerr << "error in line " << line << '\n';
+    exit(0);
 }
 
 vector<string> cpu::readfile(const char* filename){
@@ -187,6 +204,21 @@ vector<string> cpu::split_words(string line){
     return words;
 }
 
+static bool isNumber(string s){
+    for(char c : s)
+        if(!isdigit(c)) return false;
+    return true;
+}
+
+static void print_bin(unsigned int x) {
+    for (int i = 1; i <= 32; i++) {
+        printf("%d", (x >> (32 - i))&1);
+        if(i%8 == 0)
+            printf(" ");
+    }
+    printf("\n");
+}
+
 void cpu::assemble(const char* filename){
     vector<string> lines = readfile(filename);
 
@@ -205,22 +237,23 @@ void cpu::assemble(const char* filename){
                 labelValue[word] = pc;
             }
         }
-        if(!words.empty()){
+        if(!words.empty())
             pc++;
-            linesWords.push_back(words);
-        }
+        linesWords.push_back(words);
     }
 
     pc = 0;
-    for (auto words : linesWords) {
-        for(auto it = words.begin(); it != words.end(); it++){
-            string word = *it;
+    int lineCount = 0;
+
+    for (auto &words: linesWords) {
+        for (auto &word : words) {
             if(labelValue.find(word) != labelValue.end())
-                *it = to_string(labelValue[word]);
+                word = to_string(labelValue[word]);
         }
 
+        lineCount++;
         if(words.empty())
-            continue;
+            continue;;
 
         if (words[0] == "end") {
             regs[15] = labelValue[words[1]];
@@ -231,49 +264,107 @@ void cpu::assemble(const char* filename){
             pc++;
         }
         else if (words[0] == "double") {
-            // TODO: check if casting works properly
-            // double dblWord = stod(words[1]);
-            // mem[pc] = *(int*)(&dblWord);
+            float x = stod(words[1]);
+            mem[pc] = *(unsigned*)(&x);
             pc++;
         }
-
-        else{
-            
+        else {
             unsigned command = 0;
-            int cmd = opCode(words[0]);
-            int r1, r2;
-            unsigned addr;
-            int mod, imm;
-            cout << cmd << ' ';
-            switch (opType(words[0]))
-            {
+            int cmd = opCode(words[0]), cmdType = opType(words[0]);
+            int r1 = -1, r2 = -1;
+            unsigned addr = 0;
+            int mod = 0, imm = 0;
 
-            // TODO: finish decomposing 
-            // into binary format
+            switch (cmdType) {
+
             case RM:
-                // r1 = registerInt[words[1]];
-                // addr = stoul(words[2]);
+                r1 = isRegister(words[1]);
+                addr = stoul(words[2]);
+                command |= (cmd & 0xff) << 24;
+                command |= (r1 & 0xf) << 20;
+                command |= addr & 0xfffff;
                 break;
 
             case RR:
-                // r1 = registerInt[words[1]];
-                // r2 = registerInt[words[2]];
-                // mod = stoi(words[3]);
+                r1 = isRegister(words[1]);
+                r2 = isRegister(words[2]);
+                mod = stoi(words[3]);
+                command |= (cmd & 0xff) << 24;
+                command |= (r1 & 0xf) << 20;
+                command |= (r2 & 0xf) << 16;
+                command |= mod & 0xffff;
                 break;
 
             case RI:
-                // r1 = registerInt[words[1]];
-                // imm = stoi(words[2]);
+                r1 = isRegister(words[1]);
+                if(r1 == -1){
+                    r1 = 0;
+                    imm = stoi(words[1]);
+                }
+                else
+                    imm = stoi(words[2]);
+                command |= (cmd & 0xff) << 24;
+                command |= (r1 & 0xf) << 20;
+                command |= (imm & 0xfffff);
                 break;
 
             case J:
-                // addr = stoi(words[1]);
+                command |= (cmd & 0xff) << 24;
+                command |= addr & 0xfffff;
                 break;
 
             default:
                 break;
             }
+            mem[pc] = command;
             pc++;
         }
+    }
+}
+
+void cpu::run(const char* filename) {
+
+    unsigned command = mem[regs[15]];
+    unsigned cmd = (command >> 24);
+
+    while (cmd != HALT) {
+        string word = code_word[cmd];
+        command = mem[regs[15]];
+        cmd = (command >> 24);
+
+        int r1 = 0, r2 = 0;
+        unsigned addr = 0;
+        int mod = 0, imm = 0;
+
+        switch (opType(word)) {
+        
+        case RM: 
+            r1 = (command >> 20) & 0xf;
+            addr = command & 0xfffff;
+            execRM(cmd, r1, addr);
+            break;
+
+        case RR: 
+            r1  = (command >> 20) & 0xf;
+            r2  = (command >> 16) & 0xf;
+            mod = command & 0xffff;
+            execRR(cmd, r1, r2, mod);
+            break;
+
+        case RI:
+            r1  = (command >> 20) & 0xf;
+            imm = command & 0xfffff;
+            execRI(cmd, r1, imm);
+            break;
+
+        case J:
+            addr = command & 0xfffff;
+            execJ(cmd, addr);
+            break;
+
+        default:
+            break;
+        }
+        regs[15]++;
     }
 }
