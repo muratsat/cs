@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <algorithm>
 #pragma once
 
 using namespace std;
@@ -83,10 +84,10 @@ class cpu{
     map<string, int> code;
 
     // table of numbers and their code words
-    map<int, string> code_word;
+    // map<int, string> code_word;
 
     // table of code and their types
-    map<string, int> codeType;
+    map<int, int> codeType;
 
     // table of register name and their number
     map<string, int> registerInt;
@@ -106,7 +107,7 @@ class cpu{
 
     // operation type(RM, RR, RI, J)
     // returns -1 if doesn't exist
-    int opType(string word);
+    int opType(int cmd);
 
     // return register number
     // or -1 if word is not register

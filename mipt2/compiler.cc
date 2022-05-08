@@ -56,58 +56,58 @@ cpu::cpu(){
     code["storer"]  =  STORER;
     code["storer2"] = STORER2;
 
-    codeType["halt"]    = RI;
-    codeType["syscall"] = RI;
-    codeType["add"]     = RR;
-    codeType["addi"]    = RI;
-    codeType["sub"]     = RR;
-    codeType["subi"]    = RI;
-    codeType["mul"]     = RR;
-    codeType["muli"]    = RI;
-    codeType["div"]     = RR;
-    codeType["divi"]    = RI;
-    codeType["lc"]      = RI;
-    codeType["shl"]     = RR;
-    codeType["shli"]    = RI;
-    codeType["shr"]     = RR;
-    codeType["shri"]    = RI;
-    codeType["and"]     = RR;
-    codeType["andi"]    = RI;
-    codeType["or"]      = RR;
-    codeType["ori"]     = RI;
-    codeType["xor"]     = RR;
-    codeType["xori"]    = RI;
-    codeType["not"]     = RI;
-    codeType["mov"]     = RR;
-    codeType["addd"]    = RR;
-    codeType["subd"]    = RR;
-    codeType["muld"]    = RR;
-    codeType["divd"]    = RR;
-    codeType["itod"]    = RR;
-    codeType["dtoi"]    = RR;
-    codeType["push"]    = RI;
-    codeType["pop"]     = RI;
-    codeType["call"]    = RR;
-    codeType["calli"]   = J;
-    codeType["ret"]     = RI;
-    codeType["cmp"]     = RR;
-    codeType["cmpi"]    = RI;
-    codeType["cmpd"]    = RR;
-    codeType["jmp"]     = J;
-    codeType["jne"]     = J;
-    codeType["jeq"]     = J;
-    codeType["jle"]     = J;
-    codeType["jl"]      = J;
-    codeType["jge"]     = J;
-    codeType["jg"]      = J;
-    codeType["load"]    = RM;
-    codeType["store"]   = RM;
-    codeType["load2"]   = RM;
-    codeType["store2"]  = RM;
-    codeType["loadr"]   = RR;
-    codeType["loadr2"]  = RR;
-    codeType["storer"]  = RR;
-    codeType["storer2"] = RR;
+    codeType[HALT]    = RI;
+    codeType[SYSCALL] = RI;
+    codeType[ADD]     = RR;
+    codeType[ADDI]    = RI;
+    codeType[SUB]     = RR;
+    codeType[SUBI]    = RI;
+    codeType[MUL]     = RR;
+    codeType[MULI]    = RI;
+    codeType[DIV]     = RR;
+    codeType[DIVI]    = RI;
+    codeType[LC]      = RI;
+    codeType[SHL]     = RR;
+    codeType[SHLI]    = RI;
+    codeType[SHR]     = RR;
+    codeType[SHRI]    = RI;
+    codeType[AND]     = RR;
+    codeType[ANDI]    = RI;
+    codeType[OR]      = RR;
+    codeType[ORI]     = RI;
+    codeType[XOR]     = RR;
+    codeType[XORI]    = RI;
+    codeType[NOT]     = RI;
+    codeType[MOV]     = RR;
+    codeType[ADDD]    = RR;
+    codeType[SUBD]    = RR;
+    codeType[MULD]    = RR;
+    codeType[DIVD]    = RR;
+    codeType[ITOD]    = RR;
+    codeType[DTOI]    = RR;
+    codeType[PUSH]    = RI;
+    codeType[POP]     = RI;
+    codeType[CALL]    = RR;
+    codeType[CALLI]   = J;
+    codeType[RET]     = RI;
+    codeType[CMP]     = RR;
+    codeType[CMPI]    = RI;
+    codeType[CMPD]    = RR;
+    codeType[JMP]     = J;
+    codeType[JNE]     = J;
+    codeType[JEQ]     = J;
+    codeType[JLE]     = J;
+    codeType[JL]      = J;
+    codeType[JGE]     = J;
+    codeType[JG]      = J;
+    codeType[LOAD]    = RM;
+    codeType[STORE]   = RM;
+    codeType[LOAD2]   = RM;
+    codeType[STORE2]  = RM;
+    codeType[LOADR]   = RR;
+    codeType[LOADR2]  = RR;
+    codeType[STORER]  = RR;
+    codeType[STORER2] = RR;
 
     registerInt["r0"] = 0;
     registerInt["r1"] = 1;
@@ -126,9 +126,6 @@ cpu::cpu(){
     registerInt["r14"] = 14;
     registerInt["r15"] = 15;
 
-    for(auto p : code){
-        code_word[p.second] = p.first;
-    }
 }
 
 cpu::~cpu(){
@@ -141,9 +138,9 @@ int cpu::opCode(string word){
     return -1;
 }
 
-int cpu::opType(string word){
-    if(codeType.find(word) != codeType.end())
-        return codeType[word];
+int cpu::opType(int cmd){
+    if(codeType.find(cmd) != codeType.end())
+        return codeType[cmd];
     
     return -1;
 }
@@ -166,8 +163,10 @@ vector<string> cpu::readfile(){
     vector<string> lines;
 
     string s;
-    while(getline(cin, s))
+    while(getline(cin, s)){
+        s.erase(remove(s.begin(), s.end(), '\t'), s.end());
         lines.push_back(s);
+    }
 
     return lines;
 }
@@ -177,6 +176,7 @@ vector<string> cpu::split_words(string line){
 
     string word;
     vector<string> words;
+    line.erase(remove(line.begin(), line.end(), '\t'), line.end());
 
     for(int i = 0; i < n; i++) {
         char t = line[i];
@@ -248,6 +248,9 @@ void cpu::assemble(){
             if(labelValue.find(word) != labelValue.end())
                 word = to_string(labelValue[word]);
         }
+    }
+
+    for (auto &words: linesWords) {
 
         lineCount++;
         if(words.empty())
@@ -270,7 +273,7 @@ void cpu::assemble(){
         }
         else {
             unsigned command = 0;
-            int cmd = opCode(words[0]), cmdType = opType(words[0]);
+            int cmd = opCode(words[0]), cmdType = opType(cmd);
             int r1 = -1, r2 = -1;
             unsigned addr = 0;
             int mod = 0, imm = 0;
@@ -332,13 +335,12 @@ void cpu::run() {
     while (cmd != HALT) {
         command = mem[regs[15]];
         cmd = (command >> 24);
-        string word = code_word[cmd];
 
         int r1 = 0, r2 = 0;
         unsigned addr = 0;
         int mod = 0, imm = 0;
 
-        switch (opType(word)) {
+        switch (opType(cmd)) {
         
         case RM: 
             r1 = (command >> 20) & 0xf;

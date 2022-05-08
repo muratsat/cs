@@ -44,7 +44,7 @@ void cpu::execRR(int cmd, int r1, int r2, int mod){
         break;
 
     case SUB:
-        regs[r1] -= r2 + mod;
+        regs[r1] -= regs[r2] + mod;
         break;
     
     case MUL:
