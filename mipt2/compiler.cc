@@ -371,3 +371,38 @@ void cpu::run() {
         }
     }
 }
+
+
+void cpu::load() {
+    FILE *fp = fopen("input.bin", "rb");
+    fseek(fp, 0L, SEEK_END);
+    size_t count = ftell(fp);
+    fseek(fp, 0L, SEEK_SET);
+
+    char *byte = (char*)malloc(count);
+    int bytes = fread(byte, 1, count, fp);
+
+    int pc = 0;
+    for (int i = 512; i + 3 < count; i += 4) {
+        unsigned command = 0;
+        command |= ((unsigned)(char)byte[i + 3] & 0xff) << 24;
+        command |= ((unsigned)(char)byte[i + 2] & 0xff) << 16;
+        command |= ((unsigned)(char)byte[i + 1] & 0xff) << 8;
+        command |= (unsigned)(char)byte[i] & 0xff;
+        mem[pc] = command;
+        pc++;
+    }
+
+
+    unsigned addr = 0; // 28 - 31
+    addr |= (unsigned)byte[28];
+    addr |= (unsigned)byte[29] << 8;
+    addr |= (unsigned)byte[30] << 16;
+    addr |= (unsigned)byte[31] << 24;
+    regs[15] = addr;
+    regs[14] = 1024*1024 - 1;
+    mem[pc] = 0;
+
+    fclose(fp);
+    free(byte);
+}
