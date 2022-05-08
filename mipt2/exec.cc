@@ -1,8 +1,12 @@
 #include "compiler.hpp"
 using namespace std;
 
+static double to_double(long long r1, long long r2) {
+    long long res = (r2 << 32) | r1;
+    return *(double*)(&res);
+}
+
 void cpu::execRM(int cmd, int r0, unsigned addr){
-    string word = code_word[cmd];
 
     switch (cmd) {
     case LOAD:
@@ -26,12 +30,13 @@ void cpu::execRM(int cmd, int r0, unsigned addr){
     default:
         break;
     }
+    regs[15]++;
 }
 
 void cpu::execRR(int cmd, int r1, int r2, int mod){
-    string word = code_word[cmd];
     long long res;
     unsigned addr;
+    double d1, d2;
 
     switch (cmd) {
     case ADD:
@@ -45,12 +50,13 @@ void cpu::execRR(int cmd, int r1, int r2, int mod){
     case MUL:
         res = (long long)regs[r1] * (long long)regs[r2];
         regs[r1] = res;
-        regs[r1 + 1] = res;
-        // TODO
+        regs[r1 + 1] = res >> 32;
         break;
     
     case DIV:
-        // TODO
+        res = ((long long)regs[r1 + 1] << 32) | (long long)regs[r1];
+        regs[r1] = res / regs[r2];
+        regs[r1 + 1] = res % regs[r2];
         break;
 
     case SHL:
@@ -78,33 +84,51 @@ void cpu::execRR(int cmd, int r1, int r2, int mod){
         break;
 
     case ADDD:
-        // TODO
+        d1 = to_double(regs[r1], regs[r1 + 1]) + to_double(regs[r2], regs[r2 + 1]);
+        res = *(long long*)(&d1);
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break;
 
     case SUBD:
-        // TODO
+        d1 = to_double(regs[r1], regs[r1 + 1]) - to_double(regs[r2], regs[r2 + 1]);
+        res = *(long long*)(&d1);
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break;
 
     case MULD:
-        // TODO
+        d1 = to_double(regs[r1], regs[r1 + 1]) * to_double(regs[r2], regs[r2 + 1]);
+        res = *(long long*)(&d1);
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break;
 
     case DIVD:
-        // TODO
+        d1 = to_double(regs[r1], regs[r1 + 1]) / to_double(regs[r2], regs[r2 + 1]);
+        res = *(long long*)(&d1);
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break;
 
     case ITOD:
-        // TODO
+        d1 = (double)regs[r2];
+        res = *(long long*)(&d1);
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break;
 
     case DTOI:
-        // TODO
+        d1 = to_double(regs[r2], regs[r2 + 1]);
+        regs[r1] = (int)d1;
         break;
 
     case CALL:
+        regs[14]--;
+        mem[regs[14]] = regs[15] + 1;
         addr = regs[r2] + mod;
-        // TODO
-        // push stack
+        regs[15] = addr - 1;
+        regs[r1] = addr;
         break;
 
     case CMP:
@@ -112,7 +136,10 @@ void cpu::execRR(int cmd, int r1, int r2, int mod){
         break;
 
     case CMPD:
-        // TODO
+        d1 = to_double(regs[r1], regs[r1 + 1]);
+        d2 = to_double(regs[r2], regs[r2 + 1]);
+        flags = d1 > d2? 1 : -1;
+        flags *= (d1 != d2);
         break;
 
     case LOADR:
@@ -140,10 +167,13 @@ void cpu::execRR(int cmd, int r1, int r2, int mod){
     default:
         break;
     }
+    regs[15]++;
 }
 
 void cpu::execRI(int cmd, int r1, int imm){
-    string word = code_word[cmd];
+    double d;
+    int i;
+    long long res;
 
     switch (cmd) {
     case HALT:
@@ -151,7 +181,44 @@ void cpu::execRI(int cmd, int r1, int imm){
         break;
 
     case SYSCALL:
-        // TODO
+        switch (imm) {
+
+        case EXIT:
+            exit(0);
+            break;
+
+        case SCANINT:
+            res = scanf("%d", &i);
+            regs[r1] = i;
+            break;
+
+        case SCANDOUBLE:
+            res = scanf("%lg", &d);
+            res = *(long long *)(&d);
+            regs[r1] = res;
+            regs[r1 + 1] = res >> 32;
+            break;
+
+        case PRINTINT:
+            printf("%d", regs[r1]);
+            break;
+
+        case PRINTDOUBLE:
+            d = to_double(regs[r1], regs[r1 + 1]);
+            printf("%lg", d);
+            break;
+
+        case GETCHAR:
+            regs[r1] = getchar();
+            break;
+        
+        case PUTCHAR:
+            putchar(regs[r1]);
+            break;
+
+        default:
+            break;
+        }
         break; 
 
     case ADDI:
@@ -163,16 +230,19 @@ void cpu::execRI(int cmd, int r1, int imm){
         break; 
 
     case MULI:
-        // TODO
+        res = (long long)regs[r1] * (long long)imm;
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break; 
 
     case DIVI:
-        // TODO
+        res = (long long)regs[r1] / (long long)imm;
+        regs[r1] = res;
+        regs[r1 + 1] = res >> 32;
         break; 
 
     case LC:
-        // if(imm > 1048576)
-        // TODO
+        regs[r1] = imm;
         break; 
 
     case SHLI:
@@ -200,19 +270,18 @@ void cpu::execRI(int cmd, int r1, int imm){
         break;
 
     case PUSH:
+        regs[14]--;
         mem[regs[14]] = regs[r1] + imm;
-        regs[14]++;
         break;
     
     case POP:
         regs[r1] = mem[regs[14]] + imm;
-        regs[14]--;
+        regs[14]++;
         break;
 
     case RET:
-        // TODO
-        // regs[14] 
-        // regs[15] = 
+        regs[15] = mem[regs[14]] - 1;
+        regs[14] += imm + 1;
         break;
 
     case CMPI:
@@ -222,15 +291,16 @@ void cpu::execRI(int cmd, int r1, int imm){
     default:
         break;
     }
+    regs[15]++;
 }
 
 void cpu::execJ(int cmd, unsigned addr){
-    string word = code_word[cmd];
 
     switch (cmd) {
     case CALLI:
-        // regs[15] = mem[addr];
-        // TODO
+        regs[14]--;
+        mem[regs[14]] = regs[15] + 1;
+        regs[15] = addr;
         break;
     
     case JMP:
@@ -240,31 +310,43 @@ void cpu::execJ(int cmd, unsigned addr){
     case JNE:
         if(flags != 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     case JEQ:
-        if(flags != 0)
+        if(flags == 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     case JLE:
         if(flags <= 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     case JL:
         if(flags < 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     case JGE:
         if(flags >= 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     case JG:
         if(flags > 0)
             regs[15] = addr;
+        else
+            regs[15]++;
         break;
 
     default:

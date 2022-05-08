@@ -67,6 +67,16 @@ enum code {
     STORER2 = 71
 };
 
+enum syscalls {
+    EXIT = 0,
+    SCANINT = 100,
+    SCANDOUBLE = 101,
+    PRINTINT = 102,
+    PRINTDOUBLE = 103,
+    GETCHAR = 104,
+    PUTCHAR = 105
+};
+
 class cpu{
 
     // table of codes and their numbers
@@ -84,6 +94,7 @@ class cpu{
     // read and return vector of lines
     // from FILENAME
     vector<string> readfile(const char* filename);
+    vector<string> readfile();
 
     // split string into 
     // separate words
@@ -124,10 +135,13 @@ class cpu{
     // read file and assemble
     // it to binary
     void assemble(const char* filename);
+    void assemble();
 
     // load binary file
     void load(const char* filename);
+    void load();
 
     // assemble code  or load binary to run
     void run(const char* filename);
+    void run();
 };

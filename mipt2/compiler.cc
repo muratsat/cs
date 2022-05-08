@@ -161,8 +161,7 @@ void cpu::error(int line) {
     exit(0);
 }
 
-vector<string> cpu::readfile(const char* filename){
-    FILE* f = freopen(filename, "r", stdin);
+vector<string> cpu::readfile(){
 
     vector<string> lines;
 
@@ -170,7 +169,6 @@ vector<string> cpu::readfile(const char* filename){
     while(getline(cin, s))
         lines.push_back(s);
 
-    fclose(f);
     return lines;
 }
 
@@ -219,8 +217,8 @@ static void print_bin(unsigned int x) {
     printf("\n");
 }
 
-void cpu::assemble(const char* filename){
-    vector<string> lines = readfile(filename);
+void cpu::assemble(){
+    vector<string> lines = readfile();
 
     vector<vector<string>> linesWords;
 
@@ -256,7 +254,7 @@ void cpu::assemble(const char* filename){
             continue;;
 
         if (words[0] == "end") {
-            regs[15] = labelValue[words[1]];
+            regs[15] = stoul(words[1]);
             break;
         }
         else if (words[0] == "word") {
@@ -265,8 +263,10 @@ void cpu::assemble(const char* filename){
         }
         else if (words[0] == "double") {
             float x = stod(words[1]);
-            mem[pc] = *(unsigned*)(&x);
-            pc++;
+            long long res = *(unsigned*)(&x);
+            mem[pc] = res;
+            mem[pc + 1] = (res >> 32);
+            pc += 2;
         }
         else {
             unsigned command = 0;
@@ -309,6 +309,7 @@ void cpu::assemble(const char* filename){
                 break;
 
             case J:
+                addr = stoul(words[1]);
                 command |= (cmd & 0xff) << 24;
                 command |= addr & 0xfffff;
                 break;
@@ -322,15 +323,16 @@ void cpu::assemble(const char* filename){
     }
 }
 
-void cpu::run(const char* filename) {
+void cpu::run() {
 
+    regs[14] = 1024*1024 - 1;
     unsigned command = mem[regs[15]];
     unsigned cmd = (command >> 24);
 
     while (cmd != HALT) {
-        string word = code_word[cmd];
         command = mem[regs[15]];
         cmd = (command >> 24);
+        string word = code_word[cmd];
 
         int r1 = 0, r2 = 0;
         unsigned addr = 0;
@@ -365,6 +367,5 @@ void cpu::run(const char* filename) {
         default:
             break;
         }
-        regs[15]++;
     }
 }
