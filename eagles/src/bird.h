@@ -24,7 +24,7 @@ class Bird {
   // key for message queue
   key_t key_;
 
-  // shared memory id
+  // message queue id
   int msg_id_;
 
   // message buffer
